@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+html, body {
+  overscroll-behavior-y: none; /* Prevent pull-to-refresh */
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: #07070f;
+  color: #e8e8f0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+  touch-action: manipulation;
+}
+
+.scroll-container {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #13131f; }
+::-webkit-scrollbar-thumb { background: #3d3d5c; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #8b0a1a; }
+
+/* XTerm overrides */
+.xterm { padding: 4px; }
+.xterm-viewport { background: transparent !important; }
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #e11d48 0%, #8b0a1a 50%, #4d0a11 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .card {
+    background: #13131f;
+    border: 1px solid #1a1a2e;
+    border-radius: 12px;
+  }
+  .card-hover {
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card-hover:hover {
+    border-color: #8b0a1a60;
+    box-shadow: 0 0 20px #8b0a1a15;
+  }
+  .neon-border { border-color: #8b0a1a; box-shadow: 0 0 12px #8b0a1a40; }
+}
