@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { Code2, BookOpen, LayoutDashboard, LogOut, Menu, X, Terminal, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
@@ -8,10 +9,16 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout, fetchUser } = useAuthStore();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [drop, setDrop] = useState(false);
+
+  useEffect(() => {
+    // Validate session on mount
+    const token = Cookies.get('access_token');
+    if (token) fetchUser();
+  }, [fetchUser]);
 
   const handleLogout = async () => { await logout(); router.push('/auth/login'); };
 

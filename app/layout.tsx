@@ -74,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-dark-950 antialiased flex flex-col">
         <Navbar />
-        <main className="flex-1 overflow-hidden relative">
+        <main className="pb-24 md:pb-0">
           {children}
         </main>
         <MobileNav />

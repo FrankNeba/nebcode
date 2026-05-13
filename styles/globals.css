@@ -5,9 +5,7 @@
 
 * { box-sizing: border-box; }
 html, body {
-  overscroll-behavior-y: none; /* Prevent pull-to-refresh */
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
 }
 
 body {

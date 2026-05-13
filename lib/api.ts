@@ -28,15 +28,23 @@ api.interceptors.response.use(
           orig.headers.Authorization = `Bearer ${data.access}`;
           return api(orig);
         } catch {
-          Cookies.remove('access_token');
-          Cookies.remove('refresh_token');
-          if (typeof window !== 'undefined') window.location.href = '/auth/login';
+          handleLogout();
         }
+      } else {
+        handleLogout();
       }
     }
     return Promise.reject(err);
   }
 );
+
+function handleLogout() {
+  Cookies.remove('access_token');
+  Cookies.remove('refresh_token');
+  if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
+    window.location.href = '/auth/login';
+  }
+}
 
 export const getWsUrl = (path: string) => {
   const token = Cookies.get('access_token');
