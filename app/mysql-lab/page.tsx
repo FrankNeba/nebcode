@@ -87,28 +87,19 @@ export default function MySQLLabPage() {
   }, [lines]);
 
   const sendCommand = (cmd: string) => {
-    if (!cmd.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    addLine(`mysql> ${cmd}`, 'input');
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    
+    // We don't manually add the line anymore. 
+    // We let the PTY echo it back for a real terminal feel.
     wsRef.current.send(JSON.stringify({ input: cmd }));
-    setHistory(prev => [cmd, ...prev.slice(0, 49)]);
+    
+    if (cmd.trim()) {
+      setHistory(prev => [cmd, ...prev.slice(0, 49)]);
+    }
     setHistIdx(-1);
     setInput('');
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') { sendCommand(input); return; }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const idx = Math.min(histIdx + 1, history.length - 1);
-      setHistIdx(idx); setInput(history[idx] || '');
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const idx = Math.max(histIdx - 1, -1);
-      setHistIdx(idx); setInput(idx === -1 ? '' : history[idx] || '');
     }
   };
 
@@ -125,6 +116,8 @@ export default function MySQLLabPage() {
     setHistIdx(nextIdx);
     setInput(nextIdx === -1 ? '' : history[nextIdx]);
   };
+
+
 
   const insertTip = (cmd: string) => {
     setInput(cmd);
@@ -176,7 +169,7 @@ export default function MySQLLabPage() {
                       'text-green-300'
               )}>
                 <pre className="whitespace-pre-wrap break-all font-mono text-[11px] md:text-[13px] leading-normal opacity-90">
-                  {line.text.replace(/\x1b\[[0-9;]*m/g, '')}
+                  {line.text.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\s*->\s*/gm, '')}
                 </pre>
               </div>
             ))}
@@ -198,12 +191,8 @@ export default function MySQLLabPage() {
                   if (e.key === 'ArrowUp') { e.preventDefault(); handleArrowUp(); }
                   else if (e.key === 'ArrowDown') { e.preventDefault(); handleArrowDown(); }
                   else if (e.key === 'Enter' && !e.shiftKey) {
-                    const trimmed = input.trim();
-                    const isSystemCommand = trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit';
-                    if (trimmed.endsWith(';') || isSystemCommand) {
-                      e.preventDefault();
-                      sendCommand(input);
-                    }
+                    e.preventDefault();
+                    sendCommand(input);
                   }
                 }}
                 placeholder={connected ? 'Type SQL query (ends with ;)...' : 'Not connected'}

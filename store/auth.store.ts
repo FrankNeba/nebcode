@@ -20,8 +20,14 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const { data } = await api.post('/auth/login/', { email, password });
-          Cookies.set('access_token', data.access, { expires: 1, sameSite: 'strict' });
-          Cookies.set('refresh_token', data.refresh, { expires: 7, sameSite: 'strict' });
+          const cookieOptions = { 
+            expires: 7, 
+            path: '/', 
+            secure: process.env.NODE_ENV === 'production', 
+            sameSite: 'lax' as const 
+          };
+          Cookies.set('access_token', data.access, cookieOptions);
+          Cookies.set('refresh_token', data.refresh, cookieOptions);
           await get().fetchUser();
         } finally { set({ isLoading: false }); }
       },
