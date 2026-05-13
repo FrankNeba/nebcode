@@ -8,13 +8,13 @@ export function middleware(request: NextRequest) {
   // Paths that require authentication
   const protectedPaths = ['/mysql-lab', '/editor', '/courses', '/dashboard'];
 
-  // Check if the current path is a protected path
-  const isProtected = protectedPaths.some(path => pathname.startsWith(path));
+  // Check if the current path starts with any of the protected paths
+  const isProtected = protectedPaths.some(path => 
+    pathname === path || pathname.startsWith(`${path}/`)
+  );
 
   if (isProtected && !token) {
-    // Redirect to login page if no token is found
     const loginUrl = new URL('/auth/login', request.url);
-    // Optional: add a redirect parameter to return after login
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -22,7 +22,11 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
-  matcher: ['/mysql-lab/:path*', '/editor/:path*', '/courses/:path*', '/dashboard/:path*'],
+  matcher: [
+    '/mysql-lab', '/mysql-lab/:path*',
+    '/editor', '/editor/:path*',
+    '/courses', '/courses/:path*',
+    '/dashboard', '/dashboard/:path*',
+  ],
 };

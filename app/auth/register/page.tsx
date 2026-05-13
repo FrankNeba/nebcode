@@ -1,18 +1,25 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
 export default function RegisterPage() {
+  const { logout } = useAuthStore();
   const [form, setForm] = useState({ email: '', full_name: '', password: '', password_confirm: '' });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPw, setShowPw] = useState(false);
+
+  useEffect(() => {
+    // Clear state on signup page too
+    logout();
+  }, [logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setErrors({}); setLoading(true);

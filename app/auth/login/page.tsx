@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -10,9 +10,14 @@ import { Button } from '@/components/ui/Button';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login, logout, isLoading } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
+
+  useEffect(() => {
+    // Clear any stale state when arriving at login
+    logout();
+  }, [logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

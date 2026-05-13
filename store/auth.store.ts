@@ -29,6 +29,8 @@ export const useAuthStore = create<AuthState>()(
           Cookies.set('access_token', data.access, cookieOptions);
           Cookies.set('refresh_token', data.refresh, cookieOptions);
           await get().fetchUser();
+          // Force a full reload to synchronize cookies with middleware
+          window.location.href = '/dashboard';
         } finally { set({ isLoading: false }); }
       },
       logout: async () => {
