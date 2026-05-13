@@ -152,9 +152,9 @@ export default function MySQLLabPage() {
             {lines.map((line, i) => (
               <div key={i} className={
                 line.type === 'input' ? 'text-neb-300' :
-                line.type === 'error' ? 'text-red-400' :
-                line.type === 'system' ? 'text-yellow-500/70 italic text-xs' :
-                'text-green-300'
+                  line.type === 'error' ? 'text-red-400' :
+                    line.type === 'system' ? 'text-yellow-500/70 italic text-xs' :
+                      'text-green-300'
               }>
                 <pre className="whitespace-pre-wrap break-all font-mono text-[13px]">{line.text}</pre>
               </div>
