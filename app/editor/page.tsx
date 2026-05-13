@@ -26,6 +26,7 @@ export default function EditorPage() {
   const { files, activeFile, openFiles: _openFiles, setFiles, setActiveFile, updateFileContent } = useEditorStore() as any;
   const [openFiles, setOpenFiles] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     fileService.listFiles().then(async ({ data }) => {
@@ -47,6 +48,11 @@ export default function EditorPage() {
       const firstFile = findFirstFile(data);
       if (firstFile) openFile(firstFile);
     }).finally(() => setLoading(false));
+
+    // Auto-hide sidebar on mobile
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(false);
+    }
   }, []);
 
   function findFirstFile(nodes: FileNode[]): FileNode | null {
@@ -61,6 +67,7 @@ export default function EditorPage() {
   const openFile = (node: FileNode) => {
     setActiveFile(node);
     setOpenFiles(prev => prev.find(f => f.id === node.id) ? prev : [...prev, node]);
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
   const closeFile = (id: string) => {
@@ -127,19 +134,22 @@ export default function EditorPage() {
   if (loading) return <div className="flex items-center justify-center h-[calc(100vh-56px)]"><Spinner className="h-8 w-8" /></div>;
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
-      <FileExplorer
-        nodes={files}
-        activeFileId={activeFile?.id || null}
-        onSelectFile={openFile}
-        onCreateFile={handleCreateFile}
-        onCreateFolder={handleCreateFolder}
-        onDelete={handleDelete}
-        onRename={handleRename}
-      />
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden relative">
+      <div className={`${isSidebarOpen ? 'block' : 'hidden'} md:block shrink-0 z-20 h-full transition-all`}>
+        <FileExplorer
+          nodes={files}
+          activeFileId={activeFile?.id || null}
+          onSelectFile={openFile}
+          onCreateFile={handleCreateFile}
+          onCreateFolder={handleCreateFolder}
+          onDelete={handleDelete}
+          onRename={handleRename}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <RunBar />
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <RunBar isSidebarOpen={isSidebarOpen} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
         <EditorTabs openFiles={openFiles} activeFileId={activeFile?.id || null} onSelect={openFile} onClose={closeFile} />
 
         <div className="flex-1 flex flex-col overflow-hidden">

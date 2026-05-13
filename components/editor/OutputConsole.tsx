@@ -122,12 +122,12 @@ export function OutputConsole() {
         onClick={() => inputRef.current?.focus()}
         className="flex-1 p-3 overflow-auto font-mono text-[13px] leading-relaxed select-text bg-[#0d0d16] relative cursor-text scroll-smooth"
       >
-        {!output && wsOutput.length === 0 ? (
+        {(!output && wsOutput.length === 0 && !isRunning) ? (
           <p className="text-gray-700 italic text-xs">Run your code to see output here…</p>
         ) : (
           <div className="min-h-full flex flex-col justify-end">
             <pre className="whitespace-pre-wrap break-all pb-24 md:pb-8">
-              {wsOutput.map((text, i) => <span key={i}>{parseAnsi(text)}</span>)}
+              {wsOutput.map((text, i) => <span key={i} className="text-gray-300">{parseAnsi(text)}</span>)}
               {output?.stdout && <span className="text-gray-300">{output.stdout}</span>}
               {output?.stderr && <span className="text-red-400">{output.stderr}</span>}
               {isRunning && <span className="terminal-cursor" />}

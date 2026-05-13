@@ -15,6 +15,7 @@ interface Props {
   onCreateFolder: (parentId: string | null, name: string) => void;
   onDelete: (node: FileNode) => void;
   onRename: (node: FileNode, name: string) => void;
+  onClose?: () => void;
 }
 
 interface NodeRowProps extends Props {
@@ -140,7 +141,7 @@ function NodeRow({ node, depth, activeFileId, onSelectFile, onCreateFile, onCrea
   );
 }
 
-export function FileExplorer({ nodes, activeFileId, onSelectFile, onCreateFile, onCreateFolder, onDelete, onRename }: Props) {
+export function FileExplorer({ nodes, activeFileId, onSelectFile, onCreateFile, onCreateFolder, onDelete, onRename, onClose }: Props) {
   const [rootCreating, setRootCreating] = useState<null | 'file' | 'folder'>(null);
   const [rootNewName, setRootNewName] = useState('');
 
@@ -158,7 +159,12 @@ export function FileExplorer({ nodes, activeFileId, onSelectFile, onCreateFile, 
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-dark-700">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Explorer</span>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          {onClose && (
+            <button onClick={onClose} className="md:hidden p-1 rounded hover:bg-dark-600 text-gray-500 hover:text-white" title="Close sidebar">
+              <X className="h-4 w-4" />
+            </button>
+          )}
           <button onClick={() => {
             const token = Cookies.get('access_token');
             window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/code-sessions/files/download/?token=${token}`;

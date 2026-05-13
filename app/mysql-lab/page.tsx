@@ -92,6 +92,9 @@ export default function MySQLLabPage() {
     setHistory(prev => [cmd, ...prev.slice(0, 49)]);
     setHistIdx(-1);
     setInput('');
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -159,28 +162,47 @@ export default function MySQLLabPage() {
           </div>
 
           {/* Input row */}
-          <div className="border-t border-dark-700 flex items-center px-3 py-2 gap-2 bg-[#0d0d16]">
-            <span className="text-neb-400 font-mono text-sm shrink-0">mysql&gt;</span>
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={connected ? 'Type SQL query and press Enter…' : 'Not connected'}
-              disabled={!connected}
-              className="flex-1 bg-transparent font-mono text-sm text-white placeholder-gray-700 outline-none caret-neb-400"
-              spellCheck={false}
-              autoCapitalize="none"
-              autoCorrect="off"
-              autoComplete="off"
-            />
-            <button
-              onClick={() => sendCommand(input)}
-              disabled={!connected || !input.trim()}
-              className="px-3 py-1 rounded bg-neb-700 hover:bg-neb-600 text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Run ↵
-            </button>
+          <div className="border-t border-dark-700 flex flex-col bg-[#0d0d16]">
+            <div className="flex items-start px-3 py-3 gap-2">
+              <span className="text-neb-400 font-mono text-sm shrink-0 mt-1">mysql&gt;</span>
+              <textarea
+                ref={inputRef as any}
+                value={input}
+                onChange={e => {
+                  setInput(e.target.value);
+                  // Auto-expand height
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    const trimmed = input.trim();
+                    const isSystemCommand = trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit';
+                    if (trimmed.endsWith(';') || isSystemCommand) {
+                      e.preventDefault();
+                      sendCommand(input);
+                    }
+                  }
+                }}
+                placeholder={connected ? 'Type SQL query (ends with ; to run)...' : 'Not connected'}
+                disabled={!connected}
+                className="flex-1 bg-transparent font-mono text-sm text-white placeholder-gray-700 outline-none caret-neb-400 resize-none min-h-[24px] max-h-[200px]"
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoComplete="off"
+                rows={1}
+              />
+            </div>
+            <div className="flex justify-end px-3 pb-2">
+              <button
+                onClick={() => sendCommand(input)}
+                disabled={!connected || !input.trim()}
+                className="px-4 py-1.5 rounded bg-neb-700 hover:bg-neb-600 text-white text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg flex items-center gap-2"
+              >
+                Execute <span className="opacity-50 font-normal">↵</span>
+              </button>
+            </div>
           </div>
         </div>
 
