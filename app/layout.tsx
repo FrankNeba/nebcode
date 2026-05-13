@@ -23,10 +23,10 @@ export const metadata: Metadata = {
     siteName: 'Nebcode',
     images: [
       {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Nebcode - Mobile Coding Platform',
+        url: '/logo.jpeg',
+        width: 800,
+        height: 800,
+        alt: 'Nebcode Logo',
       },
     ],
     locale: 'en_US',
@@ -36,16 +36,15 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Nebcode — Learn C & MySQL on Mobile',
     description: 'Interactive IDE and MySQL containers in your pocket.',
-    images: ['/og-image.png'],
+    images: ['/logo.jpeg'],
   },
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/logo.jpeg' },
     ],
     apple: [
-      { url: '/icon-192.png', sizes: '192x192' },
+      { url: '/logo.jpeg' },
     ],
   },
   appleWebApp: {

@@ -125,7 +125,7 @@ export function OutputConsole() {
         {(!output && wsOutput.length === 0 && !isRunning) ? (
           <p className="text-gray-700 italic text-xs">Run your code to see output here…</p>
         ) : (
-          <div className="min-h-full flex flex-col justify-end">
+          <div className="min-h-full flex flex-col justify-start">
             <pre className="whitespace-pre-wrap break-all pb-24 md:pb-8">
               {wsOutput.map((text, i) => <span key={i} className="text-gray-300">{parseAnsi(text)}</span>)}
               {output?.stdout && <span className="text-gray-300">{output.stdout}</span>}

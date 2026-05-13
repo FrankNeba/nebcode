@@ -164,7 +164,7 @@ export default function EditorPage() {
                 options={{
                   fontSize: 14,
                   fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                  fontLigatures: true,
+                  fontLigatures: false,
                   minimap: { enabled: false },
                   scrollBeyondLastLine: false,
                   lineNumbers: 'on',
