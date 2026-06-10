@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Terminal, RefreshCw, Info, Star, ArrowLeft } from 'lucide-react';
@@ -21,7 +21,7 @@ const TIPS = [
 
 export const dynamic = 'force-dynamic';
 
-export default function MySQLLabPage() {
+function MySQLLabContent() {
   const { user, isAuthenticated } = useAuthStore();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -88,8 +88,8 @@ export default function MySQLLabPage() {
     <div className="max-w-6xl mx-auto px-4 py-4 md:py-6 pb-24 animate-in fade-in duration-500">
       {/* Header */}
       {courseId && lessonId && (
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={() => router.push(`/courses/${courseId}/lesson/${lessonId}`)}
           className="mb-4 text-gray-400 hover:text-white flex items-center gap-2 px-0 hover:bg-transparent"
         >
@@ -195,11 +195,11 @@ export default function MySQLLabPage() {
               <div className="flex items-center gap-1">
                 <button onClick={handleArrowUp} disabled={!connected || history.length === 0}
                   className="p-2 rounded bg-dark-800 hover:bg-dark-750 text-gray-400 disabled:opacity-20 active:scale-95 transition-all" title="Previous Command">
-                  <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+                  <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" /></svg>
                 </button>
                 <button onClick={handleArrowDown} disabled={!connected || histIdx === -1}
                   className="p-2 rounded bg-dark-800 hover:bg-dark-750 text-gray-400 disabled:opacity-20 active:scale-95 transition-all" title="Next Command">
-                  <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+                  <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" /></svg>
                 </button>
                 <span className="text-[10px] text-gray-600 font-mono ml-1 hidden sm:inline">
                   {histIdx === -1 ? '' : `${histIdx + 1}/${history.length}`}
@@ -239,5 +239,17 @@ export default function MySQLLabPage() {
       </div>
       <div className="h-20 md:hidden"></div>
     </div>
+  );
+}
+
+export default function MySQLLabPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neb-400"></div>
+      </div>
+    }>
+      <MySQLLabContent />
+    </Suspense>
   );
 }
