@@ -13,61 +13,88 @@ interface Course {
   thumbnail: string | null;
   price: number;
   is_free: boolean;
+  category: 'mysql' | 'programming' | 'others';
   module_count: number;
 }
+
+const CATEGORIES = [
+  { id: 'all', name: 'All Courses' },
+  { id: 'mysql', name: 'MySQL Databases' },
+  { id: 'programming', name: 'C Programming' },
+  { id: 'others', name: 'Other Courses' },
+];
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [purchases, setPurchases] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
+    setLoading(true);
+    const params = activeTab !== 'all' ? { category: activeTab } : undefined;
     Promise.all([
-      courseService.getCourses(),
+      courseService.getCourses(params),
       paymentService.getMyPurchases().catch(() => ({ data: [] }))
     ]).then(([cRes, pRes]) => {
       setCourses(cRes.data?.results || cRes.data || []);
       setPurchases((pRes.data || []).map((p: any) => p.course_id || p.course));
     }).finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return (
-    <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-      <Spinner className="h-8 w-8" />
-    </div>
-  );
+  }, [activeTab]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10 pb-24 md:pb-10">
+    <div className="max-w-7xl mx-auto px-4 py-10 pb-24 md:pb-10 animate-in fade-in duration-500">
       <div className="mb-10">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
           Course Catalog
         </h1>
-        <p className="text-gray-500 mt-2">Master C programming and MySQL from beginner to professional.</p>
+        <p className="text-gray-400 mt-2">Master C programming and MySQL databases from beginner to professional.</p>
       </div>
 
-      {courses.length === 0 ? (
+      {/* Categories Tabs */}
+      <div className="flex border-b border-dark-800 gap-1 mb-8 overflow-x-auto scrollbar-hide">
+        {CATEGORIES.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              "px-5 py-3 text-sm font-semibold transition-all relative border-b-2 whitespace-nowrap",
+              activeTab === tab.id
+                ? "text-neb-400 border-neb-500"
+                : "text-gray-500 border-transparent hover:text-gray-300 hover:border-dark-700"
+            )}
+          >
+            {tab.name}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <Spinner className="h-8 w-8" />
+        </div>
+      ) : courses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <BookOpen className="h-16 w-16 text-dark-600 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-400">No courses available yet</h3>
-          <p className="text-gray-600 mt-2">Check back soon — new courses are on the way.</p>
+          <BookOpen className="h-16 w-16 text-dark-750 mb-4" />
+          <h3 className="text-xl font-semibold text-gray-400">No courses available in this category</h3>
+          <p className="text-gray-600 mt-2">Check back soon — new modules are on the way.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
           {courses.map((course) => {
             const owned = course.is_free || purchases.includes(course.id);
             return (
               <Link key={course.id} href={`/courses/${course.id}`}>
                 <div className={cn(
-                  "group relative bg-dark-900 border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-neb-900/20 cursor-pointer h-full flex flex-col",
-                  owned ? "border-dark-700 hover:border-neb-700/50" : "border-dark-700"
+                  "group relative bg-dark-900/40 backdrop-blur-sm border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-neb-900/10 cursor-pointer h-full flex flex-col",
+                  owned ? "border-dark-800 hover:border-neb-800/40" : "border-dark-800 hover:border-dark-700"
                 )}>
                   {/* Thumbnail */}
                   <div className="h-44 bg-gradient-to-br from-dark-800 to-dark-950 flex items-center justify-center relative overflow-hidden">
                     {course.thumbnail ? (
                       <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="flex flex-col items-center gap-2 text-dark-600">
+                      <div className="flex flex-col items-center gap-2 text-dark-700">
                         <BookOpen className="h-10 w-10" />
                         <span className="text-xs font-mono">nebcode</span>
                       </div>
@@ -91,21 +118,26 @@ export default function CoursesPage() {
                   </div>
 
                   <div className="p-5 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-dark-950 text-gray-400 border border-dark-850">
+                        {course.category || 'others'}
+                      </span>
+                    </div>
                     <h3 className="font-bold text-lg text-white group-hover:text-neb-400 transition-colors line-clamp-2">{course.title}</h3>
                     <p className="text-gray-500 text-sm mt-2 line-clamp-3 flex-1">{course.description}</p>
 
-                    <div className="mt-4 flex items-center justify-between pt-4 border-t border-dark-700">
+                    <div className="mt-4 flex items-center justify-between pt-4 border-t border-dark-800">
                       <div className="flex items-center gap-1 text-gray-500 text-xs">
                         <BookOpen className="h-3.5 w-3.5" />
                         <span>{course.module_count} modules</span>
                       </div>
                       <div className="font-bold">
                         {course.is_free ? (
-                          <span className="text-green-400">Free</span>
+                          <span className="text-green-400 text-sm">Free</span>
                         ) : owned ? (
-                          <span className="text-green-400">Enrolled</span>
+                          <span className="text-green-400 text-sm">Enrolled</span>
                         ) : (
-                          <span className="text-neb-400">{Number(course.price).toLocaleString()} XAF</span>
+                          <span className="text-neb-400 text-sm">{Number(course.price).toLocaleString()} XAF</span>
                         )}
                       </div>
                     </div>

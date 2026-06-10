@@ -12,6 +12,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, logout, isLoading } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
+  const [otp, setOtp] = useState('');
+  const [otpRequired, setOtpRequired] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
   useEffect(() => {
@@ -22,11 +24,16 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(form.email, form.password);
-      toast.success('Welcome back!');
-      router.push('/dashboard');
+      const result = await login(form.email, form.password, otpRequired ? otp : undefined);
+      if (result?.otp_required) {
+        setOtpRequired(true);
+        toast.success('An OTP has been sent to your email to verify this device.');
+      } else {
+        toast.success('Welcome back!');
+        router.push('/dashboard');
+      }
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Invalid credentials.');
+      toast.error(err?.response?.data?.detail || 'Invalid credentials or OTP.');
     }
   };
 
@@ -39,28 +46,56 @@ export default function LoginPage() {
         </div>
         <div className="card p-8 shadow-2xl border-dark-700 backdrop-blur-sm bg-dark-900/50 animate-in fade-in zoom-in-95 duration-1000 delay-200">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <Input label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
-            
-            <div className="flex flex-col gap-1.5">
-              <Input 
-                label="Password" 
-                type={showPw ? 'text' : 'password'} 
-                placeholder="••••••••" 
-                value={form.password} 
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
-                required 
-                suffix={
-                  <button type="button" className="text-gray-500 hover:text-gray-300 transition-colors focus:outline-none" onClick={() => setShowPw(!showPw)}>
-                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                }
-              />
-              <div className="flex justify-end mt-1">
-                <Link href="/auth/forgot-password" className="text-xs text-neb-400 hover:text-neb-300 transition-colors">Forgot password?</Link>
+            {!otpRequired ? (
+              <>
+                <Input label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
+                
+                <div className="flex flex-col gap-1.5">
+                  <Input 
+                    label="Password" 
+                    type={showPw ? 'text' : 'password'} 
+                    placeholder="••••••••" 
+                    value={form.password} 
+                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
+                    required 
+                    suffix={
+                      <button type="button" className="text-gray-500 hover:text-gray-300 transition-colors focus:outline-none" onClick={() => setShowPw(!showPw)}>
+                        {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    }
+                  />
+                  <div className="flex justify-end mt-1">
+                    <Link href="/auth/forgot-password" className="text-xs text-neb-400 hover:text-neb-300 transition-colors">Forgot password?</Link>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="text-sm text-gray-300 bg-neb-950/30 border border-neb-800/30 rounded-lg p-3 text-center">
+                  A verification code has been sent to <strong className="text-neb-400">{form.email}</strong> because you are logging in from a new device.
+                </div>
+                <Input
+                  label="Verification Code (OTP)"
+                  type="text"
+                  placeholder="Enter 6-digit OTP"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value)}
+                  maxLength={6}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setOtpRequired(false)}
+                  className="text-xs text-left text-gray-400 hover:text-gray-200 transition-colors"
+                >
+                  ← Back to Email / Password
+                </button>
               </div>
-            </div>
+            )}
 
-            <Button type="submit" isLoading={isLoading} size="lg" className="w-full py-6 text-base font-semibold shadow-neb">Sign in</Button>
+            <Button type="submit" isLoading={isLoading} size="lg" className="w-full py-6 text-base font-semibold shadow-neb">
+              {otpRequired ? 'Verify & Sign in' : 'Sign in'}
+            </Button>
           </form>
           <p className="text-center text-sm text-gray-500 mt-8">
             No account? <Link href="/auth/register" className="text-neb-400 hover:text-neb-300 font-medium transition-colors">Create one free</Link>

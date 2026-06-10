@@ -60,7 +60,12 @@ export function Navbar() {
                 <ChevronDown className="h-3 w-3 text-gray-500" />
               </button>
               {drop && (
-                <div className="absolute right-0 mt-1 w-44 rounded-xl border border-dark-600 bg-dark-800 shadow-xl py-1 animate-fade-in">
+                <div className="absolute right-0 mt-1 w-44 rounded-xl border border-dark-600 bg-dark-800 shadow-xl py-1 animate-fade-in z-50">
+                  {user?.is_staff && (
+                    <Link href="/dashboard/admin" className="flex items-center gap-2 px-3 py-2 text-sm text-neb-400 hover:text-neb-300 hover:bg-dark-700 font-semibold" onClick={() => setDrop(false)}>
+                      Admin Panel
+                    </Link>
+                  )}
                   <Link href="/dashboard/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-dark-700" onClick={() => setDrop(false)}>Profile</Link>
                   <hr className="border-dark-600 my-1" />
                   <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-dark-700">
@@ -98,6 +103,11 @@ export function Navbar() {
               <Link href="/dashboard" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-700 text-sm" onClick={() => setOpen(false)}>
                 <LayoutDashboard className="h-4 w-4" /> Dashboard
               </Link>
+              {user?.is_staff && (
+                <Link href="/dashboard/admin" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-neb-400 hover:bg-dark-700 text-sm font-semibold" onClick={() => setOpen(false)}>
+                  Admin Panel
+                </Link>
+              )}
             </>}
             <hr className="border-dark-700 my-1" />
             {isAuthenticated ? (

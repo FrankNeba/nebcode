@@ -1,23 +1,21 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { courseService, paymentService, progressService } from '@/services';
+import { courseService, progressService } from '@/services';
+import { useAuthStore } from '@/store/auth.store';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { BookOpen, ChevronDown, ChevronRight, CheckCircle, Lock, Play, Phone } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, CheckCircle, Lock, Play, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
+  const { user } = useAuthStore();
   const [course, setCourse] = useState<any>(null);
   const [progress, setProgress] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState(false);
-  const [phone, setPhone] = useState('');
-  const [showPayment, setShowPayment] = useState(false);
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
 
   useEffect(() => {
@@ -27,7 +25,6 @@ export default function CourseDetailPage() {
     ]).then(([cRes, pRes]) => {
       setCourse(cRes.data);
       setProgress(pRes.data?.completed_lessons || []);
-      // Expand first module by default
       if (cRes.data?.modules?.length > 0) {
         setExpandedModules([cRes.data.modules[0].id]);
       }
@@ -38,19 +35,6 @@ export default function CourseDetailPage() {
   const totalLessons = course?.modules?.reduce((acc: number, m: any) => acc + m.lessons.length, 0) || 0;
   const completedCount = progress.length;
   const allDone = totalLessons > 0 && completedCount >= totalLessons;
-
-  const handlePurchase = async () => {
-    if (!phone.trim()) return toast.error('Enter your phone number');
-    setPurchasing(true);
-    try {
-      const res = await paymentService.initiate(id, phone);
-      if (res.data?.payment_url) window.open(res.data.payment_url, '_blank');
-      toast.success('Payment initiated! Complete it in the new tab.');
-      setShowPayment(false);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.detail || 'Payment failed');
-    } finally { setPurchasing(false); }
-  };
 
   if (loading) return <div className="flex items-center justify-center h-[calc(100vh-56px)]"><Spinner className="h-8 w-8" /></div>;
   if (!course) return <div className="flex items-center justify-center h-[calc(100vh-56px)] text-gray-500">Course not found.</div>;
@@ -78,22 +62,19 @@ export default function CourseDetailPage() {
             </div>
           )}
           {course.locked ? (
-            <div className="mt-4 space-y-2">
-              {showPayment ? (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 bg-dark-800 border border-dark-600 rounded-lg px-3 py-2">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <input className="flex-1 bg-transparent outline-none text-sm" placeholder="237XXXXXXXXX" value={phone} onChange={e => setPhone(e.target.value)} />
-                  </div>
-                  <Button onClick={handlePurchase} isLoading={purchasing} className="w-full">
-                    Pay {Number(course.price).toLocaleString()} XAF via Fapshi
-                  </Button>
+            <div className="mt-4 rounded-xl border border-neb-800/40 bg-gradient-to-br from-neb-950/50 to-dark-950 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-neb-900/60 flex items-center justify-center shrink-0">
+                  <Zap className="h-3.5 w-3.5 text-neb-400" />
                 </div>
-              ) : (
-                <Button onClick={() => setShowPayment(true)} className="w-full gap-2">
-                  <Lock className="h-4 w-4" /> Unlock — {Number(course.price).toLocaleString()} XAF
-                </Button>
-              )}
+                <p className="text-sm font-bold text-white">Premium Course</p>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed mb-3">
+                Subscribe once a year to unlock <strong className="text-white">all courses</strong>, the MySQL Lab, and the C Editor.
+              </p>
+              <Link href="/pricing" className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg bg-neb-600 hover:bg-neb-500 text-white text-xs font-bold transition-all active:scale-95">
+                <Zap className="h-3.5 w-3.5" /> Subscribe — View Plans
+              </Link>
             </div>
           ) : allDone && course.exam ? (
             <Link href={`/courses/${id}/exam`}>

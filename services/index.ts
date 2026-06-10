@@ -11,11 +11,12 @@ export const authService = {
 };
 
 export const courseService = {
-  getCourses: () => api.get('/courses/'),
+  getCourses: (params?: { category?: string }) => api.get('/courses/', { params }),
   getCourse: (id: string) => api.get(`/courses/${id}/`),
   getLesson: (id: string) => api.get(`/courses/lessons/${id}/`),
   submitExam: (id: string, answers: number[]) => api.post(`/courses/exams/${id}/submit/`, { answers }),
   downloadCertificate: (courseId: string) => api.get(`/courses/${courseId}/certificate/`, { responseType: 'blob' }),
+  importCourse: (data: any) => api.post('/courses/import/', data),
 };
 
 export const executionService = {
@@ -33,10 +34,15 @@ export const fileService = {
 };
 
 export const paymentService = {
-  initiate: (course_id: string, phone_number: string) =>
-    api.post('/payments/initiate/', { course_id, phone_number }),
+  initiate: (course_id: string, phone_number: string, gateway?: string) =>
+    api.post('/payments/initiate/', { course_id, phone_number, gateway }),
   getMyPurchases: () => api.get('/payments/my-purchases/'),
+  getSubscriptionPrice: () => api.get('/payments/subscription/price/'),
+  initiateSubscription: (phone: string, gateway: string) =>
+    api.post('/payments/subscription/initiate/', { phone, gateway }),
+  getSubscriptionStatus: () => api.get('/payments/subscription/status/'),
 };
+
 
 export const progressService = {
   markComplete: (lesson_id: string) => api.post(`/progress/lessons/${lesson_id}/complete/`),

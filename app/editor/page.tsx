@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import { Code2 } from 'lucide-react';
+import nextDynamic from 'next/dynamic';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Code2, ArrowLeft } from 'lucide-react';
 import { FileNode } from '@/types';
 import { fileService, executionService } from '@/services';
 import { useEditorStore } from '@/store/editor.store';
@@ -12,7 +13,7 @@ import { OutputConsole } from '@/components/editor/OutputConsole';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
 
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+const MonacoEditor = nextDynamic(() => import('@monaco-editor/react'), { ssr: false });
 
 const DEFAULT_C = `#include <stdio.h>
 
@@ -22,38 +23,50 @@ int main() {
 }
 `;
 
+export const dynamic = 'force-dynamic';
+
 export default function EditorPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const courseId = searchParams.get('courseId');
+  const lessonId = searchParams.get('lessonId');
+
   const { files, activeFile, openFiles: _openFiles, setFiles, setActiveFile, updateFileContent } = useEditorStore() as any;
   const [openFiles, setOpenFiles] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
+    const codeParam = searchParams.get('code');
     fileService.listFiles().then(async ({ data }) => {
+      let filesData = data;
       // If no files found, request backend to initialize default C session (this creates main.c)
-      if ((!data || data.length === 0) ) {
+      if (!filesData || filesData.length === 0) {
         try {
           await executionService.getCode({ session_type: 'c' });
           const refreshed = await fileService.listFiles();
-          setFiles(refreshed.data);
-          const firstFile = findFirstFile(refreshed.data);
-          if (firstFile) openFile(firstFile);
-          return;
+          filesData = refreshed.data;
         } catch (e) {
           // fallback
         }
       }
-      setFiles(data);
+      setFiles(filesData);
       // Auto-open first file
-      const firstFile = findFirstFile(data);
-      if (firstFile) openFile(firstFile);
+      const firstFile = findFirstFile(filesData);
+      if (firstFile) {
+        if (codeParam) {
+          firstFile.content = codeParam;
+          await fileService.updateNode(firstFile.id, { content: codeParam }).catch(() => {});
+        }
+        openFile(firstFile);
+      }
     }).finally(() => setLoading(false));
 
     // Auto-hide sidebar on mobile
     if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
-  }, []);
+  }, [searchParams]);
 
   function findFirstFile(nodes: FileNode[]): FileNode | null {
     for (const n of nodes) {
@@ -134,8 +147,19 @@ export default function EditorPage() {
   if (loading) return <div className="flex items-center justify-center h-[calc(100vh-56px)]"><Spinner className="h-8 w-8" /></div>;
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden relative">
-      <div className={`${isSidebarOpen ? 'block' : 'hidden'} md:block shrink-0 z-20 h-full transition-all`}>
+    <div className="flex flex-col h-[calc(100vh-56px)] overflow-hidden relative">
+      {courseId && lessonId && (
+        <div className="px-3 py-2 bg-dark-900 border-b border-dark-800 shrink-0">
+          <button 
+            onClick={() => router.push(`/courses/${courseId}/lesson/${lessonId}`)}
+            className="text-gray-400 hover:text-white flex items-center gap-2 text-sm font-semibold transition"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Lesson
+          </button>
+        </div>
+      )}
+      <div className="flex flex-1 overflow-hidden relative">
+        <div className={`${isSidebarOpen ? 'block' : 'hidden'} md:block shrink-0 z-20 h-full transition-all`}>
         <FileExplorer
           nodes={files}
           activeFileId={activeFile?.id || null}
@@ -195,6 +219,7 @@ export default function EditorPage() {
 
         <div className="h-48 border-t border-dark-700">
           <OutputConsole />
+        </div>
         </div>
       </div>
     </div>

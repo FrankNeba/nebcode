@@ -1,6 +1,8 @@
 export interface User {
   id: string; email: string; full_name: string;
   avatar?: string; is_verified: boolean; created_at: string;
+  is_subscribed: boolean; subscription_expires_at?: string;
+  lab_access_days: string[]; is_staff: boolean; is_superuser: boolean;
 }
 export interface FileNode {
   id: string; name: string; node_type: 'file' | 'folder';
@@ -9,7 +11,7 @@ export interface FileNode {
 }
 export interface Course {
   id: string; title: string; description: string;
-  thumbnail?: string; price: number; is_free: boolean;
+  thumbnail?: string; price: number; is_free: boolean; category: 'mysql' | 'programming' | 'others';
   module_count?: number; modules?: Module[]; locked?: boolean;
 }
 export interface Module {
@@ -18,8 +20,12 @@ export interface Module {
 export interface LessonSummary {
   id: string; title: string; lesson_type: string; order: number; has_exercise: boolean;
 }
+export interface Section {
+  id: string; title: string; content: string; order: number;
+}
 export interface Lesson extends LessonSummary {
-  content: string; video_url?: string; exercises: Exercise[];
+  content: string; video_url?: string; images?: string[]; content_format: string;
+  sections?: Section[]; exercises: Exercise[];
 }
 export interface Exercise {
   id: string; question: string; exercise_type: 'c' | 'mysql';
@@ -33,4 +39,7 @@ export interface Purchase {
 export interface ExecutionResult {
   stdout: string; stderr: string; exit_code: number;
   timed_out: boolean; success: boolean;
+}
+export interface Subscription {
+  id: string; status: string; amount: number; expires_at?: string; created_at: string;
 }
