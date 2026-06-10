@@ -14,7 +14,7 @@ export default function PricingPage() {
 
   // Form State
   const [phone, setPhone] = useState('');
-  const [gateway, setGateway] = useState<'CM_ORANGE' | 'CM_MTN'>('CM_ORANGE');
+  const [gateway, setGateway] = useState<'CM_ORANGE' | 'CM_MTN'>('CM_MTN');
   const [isPaying, setIsPaying] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
@@ -41,7 +41,7 @@ export default function PricingPage() {
       const res = await paymentService.initiateSubscription(phone, gateway);
       toast.success(res.data.detail || 'Payment initiated! Check your phone for verification prompting.');
       setPaymentSuccess(true);
-      
+
       // Periodically refresh user profile to detect subscription success
       const interval = setInterval(async () => {
         await fetchUser();
@@ -150,22 +150,20 @@ export default function PricingPage() {
                     <button
                       type="button"
                       onClick={() => setGateway('CM_ORANGE')}
-                      className={`py-2.5 rounded-lg border text-xs font-bold transition ${
-                        gateway === 'CM_ORANGE'
+                      className={`py-2.5 rounded-lg border text-xs font-bold transition ${gateway === 'CM_ORANGE'
                           ? 'bg-orange-500/10 border-orange-500 text-orange-400'
                           : 'bg-dark-950 border-dark-800 text-gray-400 hover:text-white'
-                      }`}
+                        }`}
                     >
                       Orange Money
                     </button>
                     <button
                       type="button"
                       onClick={() => setGateway('CM_MTN')}
-                      className={`py-2.5 rounded-lg border text-xs font-bold transition ${
-                        gateway === 'CM_MTN'
+                      className={`py-2.5 rounded-lg border text-xs font-bold transition ${gateway === 'CM_MTN'
                           ? 'bg-yellow-500/10 border-yellow-500 text-yellow-400'
                           : 'bg-dark-950 border-dark-800 text-gray-400 hover:text-white'
-                      }`}
+                        }`}
                     >
                       MTN MoMo
                     </button>
