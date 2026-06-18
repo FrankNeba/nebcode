@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getWsUrl } from '@/lib/api';
 import { mysqlLabService } from '@/services';
+import { useDeviceOtpStore } from '@/store/device-otp.store';
 import toast from 'react-hot-toast';
 
 export interface TerminalLine {
@@ -48,7 +49,15 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
 
     set({ connecting: true });
     try {
-      await mysqlLabService.startSession();
+      const { data } = await mysqlLabService.startSession();
+      if (data && data.otp_required) {
+        set({ connecting: false });
+        useDeviceOtpStore.getState().openModal(
+          (typeof window !== 'undefined' ? localStorage.getItem('nebcode_device_id') : '') || '',
+          () => { get().connect(); }
+        );
+        return;
+      }
     } catch (e) {
       toast.error('Failed to initialize MySQL session');
       set({ connecting: false, connected: false });

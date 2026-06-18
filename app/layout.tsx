@@ -6,19 +6,19 @@ import '@/styles/globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Nebcode — Real-Time C & MySQL Learning Platform',
+    default: 'Nebcode - C & MySQL Learning Platform For Cameroon students',
     template: '%s | Nebcode'
   },
   description: 'Master C programming and MySQL with our interactive, mobile-first IDE. Practice with real-time compilers and live database containers from anywhere.',
-  keywords: ['C programming', 'MySQL', 'Online IDE', 'Learn coding mobile', 'Interactive SQL', 'Nebcode'],
-  authors: [{ name: 'Nebcode Team' }],
+  keywords: ['C programming', 'MySQL', 'Online IDE', 'Learn coding mobile', 'Interactive SQL', 'Nebcode', 'GCE', "Computer Science", 'CSC'],
+  authors: [{ name: 'Nebcode ' }],
   metadataBase: new URL('https://nebcode.ngwafrank.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'Nebcode — Master C & MySQL on the Go',
-    description: 'The most interactive mobile platform to learn backend development.',
+    description: 'The most interactive mobile platform to learn C and MySQL in Cameroon.',
     url: 'https://nebcode.ngwafrank.com',
     siteName: 'Nebcode',
     images: [
@@ -68,6 +68,8 @@ export const viewport = {
   themeColor: '#8b0a1a',
 };
 
+import { DeviceOtpModal } from '@/components/auth/DeviceOtpModal';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -77,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <MobileNav />
+        <DeviceOtpModal />
         <Toaster position="top-right" toastOptions={{
           style: { background: '#13131f', color: '#e8e8f0', border: '1px solid #1a1a2e', borderRadius: '10px', fontSize: '13px' },
           success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },

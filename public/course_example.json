@@ -1,0 +1,54 @@
+{
+  "title": "Introduction to Python Programming",
+  "description": "A comprehensive course on Python programming covering variables, loops, functions, and database integration.",
+  "price": 25000,
+  "is_free": false,
+  "category": "programming",
+  "modules": [
+    {
+      "title": "Module 1: Python Basics",
+      "order": 1,
+      "lessons": [
+        {
+          "title": "Lesson 1: Hello World in Python",
+          "content": "# Welcome to Python!\n\nPython is a high-level, interpreted, general-purpose programming language. Let's write our first script.\n\nIn Python, you can print text to the console using the `print()` function:\n```python\nprint(\"Hello, World!\")\n```\n\n### Mathematical Formulas\nYou can write math equations using LaTeX, for example: $E = mc^2$ or a block math equation:\n\n$$\\int_a^b x^2 dx = \\frac{1}{3}(b^3 - a^3)$$\n\nWatch the intro video below to get started!",
+          "content_format": "markdown",
+          "lesson_type": "mixed",
+          "video_url": "https://www.youtube.com/watch?v=rfscVS0vtbw",
+          "order": 1,
+          "sections": [
+            {
+              "title": "Why Learn Python?",
+              "content": "Python has a clean, readable syntax, making it the perfect language for beginners. It's also widely used in Web Development, Data Science, AI, and Automation.",
+              "order": 1
+            }
+          ],
+          "exercises": [
+            {
+              "question": "Write a C function that returns the square of a number. (This matches the available C programming sandbox exercise runner).",
+              "exercise_type": "c",
+              "starter_code": "int square(int n) {\n  // write your code here\n}",
+              "answer": {
+                "correct_code": "int square(int n) {\n  return n * n;\n}",
+                "explanation": "To square a number, we multiply the number by itself (n * n)."
+              },
+              "order": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "exam": {
+    "title": "Python Basics Final Exam",
+    "pass_percentage": 80,
+    "questions": [
+      {
+        "text": "Which of the following is the correct exponentiation operator in Python?",
+        "options": ["^", "**", "pow", "xs"],
+        "correct_option_index": 1,
+        "order": 1
+      }
+    ]
+  }
+}

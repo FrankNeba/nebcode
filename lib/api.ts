@@ -11,6 +11,13 @@ export const api = axios.create({
 api.interceptors.request.use((cfg) => {
   const token = Cookies.get('access_token');
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  
+  if (typeof window !== 'undefined') {
+    const deviceId = localStorage.getItem('nebcode_device_id');
+    if (deviceId) {
+      cfg.headers['X-Device-ID'] = deviceId;
+    }
+  }
   return cfg;
 });
 

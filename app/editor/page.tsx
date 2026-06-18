@@ -31,7 +31,7 @@ function EditorContent() {
   const courseId = searchParams.get('courseId');
   const lessonId = searchParams.get('lessonId');
 
-  const { files, activeFile, openFiles: _openFiles, setFiles, setActiveFile, updateFileContent } = useEditorStore() as any;
+  const { files, activeFile, openFiles: _openFiles, setFiles, setActiveFile, updateFileContent, isMobileMode } = useEditorStore() as any;
   const [openFiles, setOpenFiles] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -172,7 +172,7 @@ function EditorContent() {
           />
         </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${isMobileMode ? 'max-w-md mx-auto border-x border-dark-700 shadow-2xl bg-dark-900' : ''}`}>
           <RunBar isSidebarOpen={isSidebarOpen} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
           <EditorTabs openFiles={openFiles} activeFileId={activeFile?.id || null} onSelect={openFile} onClose={closeFile} />
 
@@ -194,7 +194,7 @@ function EditorContent() {
                     lineNumbers: 'on',
                     padding: { top: 12, bottom: 12 },
                     tabSize: 4,
-                    wordWrap: 'on',
+                    wordWrap: isMobileMode ? 'on' : 'off',
                     automaticLayout: true,
                   }}
                   onMount={() => {

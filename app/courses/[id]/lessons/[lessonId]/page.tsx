@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
+import { useDeviceOtpStore } from '@/store/device-otp.store';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -44,6 +45,13 @@ export default function LessonPage() {
     setIsRunning(true);
     try {
       const { data } = await executionService.runC(code);
+      if (data && data.otp_required) {
+        useDeviceOtpStore.getState().openModal(
+          (typeof window !== 'undefined' ? localStorage.getItem('nebcode_device_id') : '') || '',
+          () => { handleRun(); }
+        );
+        return;
+      }
       setOutput(data);
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || 'Execution failed');
@@ -82,11 +90,21 @@ export default function LessonPage() {
         </Button>
       </div>
 
-      {lesson.video_url && (
-        <div className="mb-8 rounded-xl overflow-hidden aspect-video bg-dark-800">
-          <iframe src={lesson.video_url.replace('watch?v=', 'embed/')} className="w-full h-full" allowFullScreen title={lesson.title} />
-        </div>
-      )}
+      {lesson.video_url && (() => {
+        const videoId = lesson.video_url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([^&?/]+)/)?.[1];
+        if (!videoId) return <a href={lesson.video_url} target="_blank" rel="noopener noreferrer" className="text-neb-400 underline">{lesson.video_url}</a>;
+        return (
+          <div className="mb-8 rounded-xl overflow-hidden aspect-video bg-dark-800 shadow-2xl my-6">
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={lesson.title}
+            />
+          </div>
+        );
+      })()}
 
       {lesson.content && (
         <div className="card p-5 mb-8 prose prose-invert prose-sm max-w-none

@@ -8,6 +8,11 @@ export const authService = {
   changePassword: (d: any) => api.post('/auth/change-password/', d),
   updateProfile: (d: any) => api.patch('/auth/profile/', d),
   getProfile: () => api.get('/auth/profile/'),
+  getAdminUsers: () => api.get('/auth/admin/'),
+  createAdminUser: (data: any) => api.post('/auth/admin/', data),
+  updateAdminUser: (id: string, data: any) => api.patch(`/auth/admin/${id}/`, data),
+  deleteAdminUser: (id: string) => api.delete(`/auth/admin/${id}/`),
+  verifyDeviceOtp: (device_id: string, otp: string) => api.post('/auth/verify-device/', { device_id, otp }),
 };
 
 export const courseService = {
@@ -17,6 +22,24 @@ export const courseService = {
   submitExam: (id: string, answers: number[]) => api.post(`/courses/exams/${id}/submit/`, { answers }),
   downloadCertificate: (courseId: string) => api.get(`/courses/${courseId}/certificate/`, { responseType: 'blob' }),
   importCourse: (data: any) => api.post('/courses/import/', data),
+  getAdminCourses: () => api.get('/courses/admin/'),
+  createAdminCourse: (data: any) => api.post('/courses/admin/', data),
+  updateAdminCourse: (id: string, data: any) => api.patch(`/courses/admin/${id}/`, data),
+  deleteAdminCourse: (id: string) => api.delete(`/courses/admin/${id}/`),
+  exportAdminCourseJson: (id: string) => api.get(`/courses/admin/${id}/export-json/`),
+  updateAdminCourseJson: (id: string, data: any) => api.post(`/courses/admin/${id}/update-json/`, data),
+  // Modules CRUD
+  createAdminModule: (data: any) => api.post('/courses/admin/modules/', data),
+  updateAdminModule: (id: string, data: any) => api.patch(`/courses/admin/modules/${id}/`, data),
+  deleteAdminModule: (id: string) => api.delete(`/courses/admin/modules/${id}/`),
+  // Lessons CRUD
+  createAdminLesson: (data: any) => api.post('/courses/admin/lessons/', data),
+  updateAdminLesson: (id: string, data: any) => api.patch(`/courses/admin/lessons/${id}/`, data),
+  deleteAdminLesson: (id: string) => api.delete(`/courses/admin/lessons/${id}/`),
+  // Sections CRUD
+  createAdminSection: (data: any) => api.post('/courses/admin/sections/', data),
+  updateAdminSection: (id: string, data: any) => api.patch(`/courses/admin/sections/${id}/`, data),
+  deleteAdminSection: (id: string) => api.delete(`/courses/admin/sections/${id}/`),
 };
 
 export const executionService = {

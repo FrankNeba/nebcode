@@ -49,15 +49,15 @@ export default function LoginPage() {
             {!otpRequired ? (
               <>
                 <Input label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
-                
+
                 <div className="flex flex-col gap-1.5">
-                  <Input 
-                    label="Password" 
-                    type={showPw ? 'text' : 'password'} 
-                    placeholder="••••••••" 
-                    value={form.password} 
-                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
-                    required 
+                  <Input
+                    label="Password"
+                    type={showPw ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                    required
                     suffix={
                       <button type="button" className="text-gray-500 hover:text-gray-300 transition-colors focus:outline-none" onClick={() => setShowPw(!showPw)}>
                         {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

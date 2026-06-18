@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap } from 'lucide-react';
+import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { progressService, paymentService } from '@/services';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,27 @@ export default function DashboardPage() {
         <h1 className="font-bold text-2xl text-white">Hey, {user?.full_name?.split(' ')[0] || 'learner'} 👋</h1>
         <p className="text-gray-500 text-sm mt-1">Keep up the momentum!</p>
       </div>
+
+      {/* Admin Quick Link */}
+      {user?.is_staff && (
+        <div className="mb-6 rounded-2xl border border-red-800/40 bg-gradient-to-br from-red-950/60 via-dark-900/80 to-dark-950 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-11 h-11 rounded-xl bg-red-900/20 border border-red-800/30 flex items-center justify-center shrink-0">
+            <ShieldAlert className="h-5 w-5 text-red-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-bold text-sm">Administrative Controls</p>
+            <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">
+              You have staff access. Manage user accounts, upload course structure JSONs, and perform platform-wide operations.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/admin"
+            className="shrink-0 px-4 py-2 rounded-xl bg-red-900/80 hover:bg-red-850 text-white text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center gap-1.5"
+          >
+            Access Admin Panel <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Premium Upgrade Banner — only for free-tier users */}
       {!isSubscribed && (

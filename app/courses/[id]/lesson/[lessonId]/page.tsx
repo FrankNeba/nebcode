@@ -17,11 +17,12 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { MySQLEmbeddedTerminal } from '@/components/courses/MySQLEmbeddedTerminal';
 import { useEditorStore } from '@/store/editor.store';
+import { useDeviceOtpStore } from '@/store/device-otp.store';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
 function YouTubeEmbed({ url }: { url: string }) {
-  const videoId = url?.match(/(?:v=|youtu\.be\/|embed\/)([^&?/]+)/)?.[1];
+  const videoId = url?.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([^&?/]+)/)?.[1];
   if (!videoId) return <a href={url} target="_blank" className="text-neb-400 underline">{url}</a>;
   return (
     <div className="relative w-full rounded-xl overflow-hidden shadow-2xl my-6" style={{ paddingBottom: '56.25%' }}>
@@ -321,6 +322,15 @@ function ExercisePanel({
     setIsRunning(true);
     try {
       const { data } = await executionService.runC(code);
+      if (data && data.otp_required) {
+        useDeviceOtpStore.getState().openModal(
+          localStorage.getItem('nebcode_device_id') || '',
+          () => {
+            handleRun();
+          }
+        );
+        return;
+      }
       setOutput(data);
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || 'Execution failed');
