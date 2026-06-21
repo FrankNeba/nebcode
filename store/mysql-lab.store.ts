@@ -71,9 +71,20 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
       set({ connected: true, connecting: false, ws: socket });
     };
 
-    socket.onclose = () => {
+    socket.onclose = (event) => {
       set({ connected: false, connecting: false, ws: null });
-      get().addLine('Connection closed.', 'system');
+      if (event.code === 4003) {
+        toast.error(
+          '🚫 Unauthorized Device — You are trying to use the MySQL Lab from an unauthorized device. Please switch to your registered device or contact support.',
+          { duration: 6000 }
+        );
+      } else if (event.code === 4002) {
+        toast.error('Lab access limit reached. Upgrade your plan to continue using the MySQL Lab.', { duration: 5000 });
+      } else if (event.code === 4001) {
+        toast.error('Authentication failed. Please log in again.');
+      } else {
+        get().addLine('Connection closed.', 'system');
+      }
     };
 
     socket.onerror = () => {

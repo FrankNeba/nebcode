@@ -39,9 +39,21 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
       }
     };
 
-    ws.onclose = () => setIsRunning(false);
+    ws.onclose = (event) => {
+      setIsRunning(false);
+      if (event.code === 4003) {
+        toast.error(
+          '🚫 Unauthorized Device — You are using an unauthorized device to run code. Please use your registered device or contact support.',
+          { duration: 6000 }
+        );
+      } else if (event.code === 4002) {
+        toast.error('Lab access limit reached. Upgrade your plan to continue running code.', { duration: 5000 });
+      } else if (event.code === 4001) {
+        toast.error('Authentication failed. Please log in again.');
+      }
+    };
     ws.onerror = () => {
-      toast.error('Connection error');
+      toast.error('Connection error. Please check your network and try again.');
       setIsRunning(false);
     };
   };
