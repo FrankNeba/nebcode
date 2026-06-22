@@ -13,6 +13,14 @@ export const authService = {
   updateAdminUser: (id: string, data: any) => api.patch(`/auth/admin/${id}/`, data),
   deleteAdminUser: (id: string) => api.delete(`/auth/admin/${id}/`),
   verifyDeviceOtp: (device_id: string, otp: string) => api.post('/auth/verify-device/', { device_id, otp }),
+  googleAuth: (d: { token?: string; access_token?: string }) => api.post('/auth/google-auth/', d),
+  claimReferral: (referral_code: string) => api.post('/auth/claim-referral/', { referral_code }),
+  withdrawReferral: (momo_number: string, momo_name: string) => api.post('/auth/withdraw/', { momo_number, momo_name }),
+  getReferralStats: () => api.get('/auth/referral-stats/'),
+  getAdminWithdrawals: () => api.get('/auth/admin/withdrawals/'),
+  updateAdminWithdrawal: (id: string, data: { status: 'confirmed' | 'rejected' }) => api.patch(`/auth/admin/withdrawals/${id}/`, data),
+  getNotifications: () => api.get('/auth/notifications/'),
+  markNotificationRead: (id: string) => api.post(`/auth/notifications/${id}/read/`),
 };
 
 export const courseService = {

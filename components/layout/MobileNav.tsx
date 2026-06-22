@@ -11,7 +11,7 @@ export function MobileNav() {
     { label: 'Courses', icon: BookOpen, href: '/courses' },
     { label: 'Editor', icon: Code2, href: '/editor' },
     { label: 'MySQL', icon: Database, href: '/mysql-lab' },
-    { label: 'Profile', icon: User, href: '/profile' },
+    { label: 'Profile', icon: User, href: '/dashboard/profile' },
   ];
 
   return (
@@ -19,8 +19,8 @@ export function MobileNav() {
       {navItems.map((item) => {
         const isActive = pathname === item.href;
         return (
-          <Link 
-            key={item.href} 
+          <Link
+            key={item.href}
             href={item.href}
             className={cn(
               "flex flex-col items-center gap-1 transition-all duration-300",

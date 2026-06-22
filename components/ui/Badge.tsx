@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 export function Badge({ children, variant = 'default', className }: { children: React.ReactNode; variant?: string; className?: string }) {
   const v: Record<string, string> = {
     default: 'bg-dark-600 text-gray-300 border-dark-500',
+    secondary: 'bg-dark-800 text-gray-400 border-dark-700',
     success: 'bg-emerald-900/40 text-emerald-400 border-emerald-800',
     warning: 'bg-amber-900/40 text-amber-400 border-amber-800',
     danger: 'bg-red-900/40 text-red-400 border-red-800',

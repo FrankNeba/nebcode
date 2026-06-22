@@ -3,6 +3,9 @@ export interface User {
   avatar?: string; is_verified: boolean; created_at: string;
   is_subscribed: boolean; subscription_expires_at?: string;
   lab_access_days: string[]; is_staff: boolean; is_superuser: boolean;
+  referral_code?: string;
+  referral_balance?: number;
+  referred_by?: string | null;
 }
 export interface FileNode {
   id: string; name: string; node_type: 'file' | 'folder';

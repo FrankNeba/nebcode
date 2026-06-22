@@ -7,17 +7,19 @@ import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
+import GoogleReferralModal from '@/components/auth/GoogleReferralModal';
 
 export default function RegisterPage() {
   const { logout } = useAuthStore();
-  const [form, setForm] = useState({ email: '', full_name: '', password: '', password_confirm: '' });
+  const [form, setForm] = useState({ email: '', full_name: '', password: '', password_confirm: '', referral_code: '' });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPw, setShowPw] = useState(false);
+  const [showGoogleRefModal, setShowGoogleRefModal] = useState(false);
 
   useEffect(() => {
-    // Clear state on signup page too
     logout();
   }, [logout]);
 
@@ -35,9 +37,14 @@ export default function RegisterPage() {
       const d = err?.response?.data || {};
       if (d.email) setErrors(p => ({ ...p, email: Array.isArray(d.email) ? d.email[0] : d.email }));
       if (d.password) setErrors(p => ({ ...p, password: Array.isArray(d.password) ? d.password[0] : d.password }));
-      if (!d.email && !d.password) toast.error(d.detail || 'Registration failed.');
+      if (d.referral_code) setErrors(p => ({ ...p, referral_code: Array.isArray(d.referral_code) ? d.referral_code[0] : d.referral_code }));
+      if (!d.email && !d.password && !d.referral_code) toast.error(d.detail || 'Registration failed.');
     } finally { setLoading(false); }
   };
+
+  if (showGoogleRefModal) {
+    return <GoogleReferralModal onClose={() => setShowGoogleRefModal(false)} />;
+  }
 
   if (done) return (
     <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 bg-dark-950">
@@ -92,8 +99,30 @@ export default function RegisterPage() {
               error={errors.password_confirm}
               required 
             />
+            <Input 
+              label="Referral Code (Optional)" 
+              placeholder="e.g. NEB100" 
+              value={form.referral_code} 
+              onChange={e => setForm(f => ({ ...f, referral_code: e.target.value }))} 
+              error={errors.referral_code} 
+            />
             <Button type="submit" isLoading={loading} size="lg" className="w-full py-6 text-base font-semibold shadow-neb mt-2">Create account</Button>
           </form>
+
+          <div className="relative flex py-4 items-center">
+            <div className="flex-grow border-t border-dark-700"></div>
+            <span className="flex-shrink mx-4 text-gray-500 text-xs uppercase font-medium">Or</span>
+            <div className="flex-grow border-t border-dark-700"></div>
+          </div>
+
+          <GoogleLoginButton onSuccess={(isNew) => {
+            if (isNew) {
+              setShowGoogleRefModal(true);
+            } else {
+              window.location.href = '/dashboard';
+            }
+          }} />
+
           <p className="text-center text-sm text-gray-500 mt-8">
             Already have an account? <Link href="/auth/login" className="text-neb-400 hover:text-neb-300 font-medium transition-colors">Sign in</Link>
           </p>

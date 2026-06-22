@@ -7,6 +7,8 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
+import GoogleReferralModal from '@/components/auth/GoogleReferralModal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,9 +17,9 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [otpRequired, setOtpRequired] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const [showGoogleRefModal, setShowGoogleRefModal] = useState(false);
 
   useEffect(() => {
-    // Clear any stale state when arriving at login
     logout();
   }, [logout]);
 
@@ -36,6 +38,10 @@ export default function LoginPage() {
       toast.error(err?.response?.data?.detail || 'Invalid credentials or OTP.');
     }
   };
+
+  if (showGoogleRefModal) {
+    return <GoogleReferralModal onClose={() => setShowGoogleRefModal(false)} />;
+  }
 
   return (
     <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 py-12 bg-dark-950">
@@ -97,6 +103,25 @@ export default function LoginPage() {
               {otpRequired ? 'Verify & Sign in' : 'Sign in'}
             </Button>
           </form>
+
+          {!otpRequired && (
+            <>
+              <div className="relative flex py-4 items-center">
+                <div className="flex-grow border-t border-dark-700"></div>
+                <span className="flex-shrink mx-4 text-gray-500 text-xs uppercase font-medium">Or</span>
+                <div className="flex-grow border-t border-dark-700"></div>
+              </div>
+
+              <GoogleLoginButton onSuccess={(isNew) => {
+                if (isNew) {
+                  setShowGoogleRefModal(true);
+                } else {
+                  router.push('/dashboard');
+                }
+              }} />
+            </>
+          )}
+
           <p className="text-center text-sm text-gray-500 mt-8">
             No account? <Link href="/auth/register" className="text-neb-400 hover:text-neb-300 font-medium transition-colors">Create one free</Link>
           </p>
