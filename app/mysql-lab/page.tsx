@@ -157,7 +157,7 @@ function MySQLLabContent() {
                       'text-green-300'
               )}>
                 <pre className="whitespace-pre-wrap break-all font-mono text-xs md:text-[13px] leading-normal opacity-90">
-                  {line.text.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\s*->\s*/gm, '')}
+                  {line.text}
                 </pre>
               </div>
             ))}

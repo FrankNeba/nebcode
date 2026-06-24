@@ -92,15 +92,25 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
       get().addLine('Connection error.', 'error');
     };
 
+    const stripPrompt = (raw: string): string =>
+      raw
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        // Remove every line that is *only* a mysql prompt (e.g. "mysql> " or "mysql  -> ")
+        .replace(/^[ \t]*mysql[\s]*(?:>|->)[ \t]*/gm, '')
+        // Strip ANSI colour codes
+        .replace(/\x1b\[[0-9;]*m/g, '')
+        .trimEnd();
+
     socket.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'output' || msg.type === 'error') {
-          const text = msg.data.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-          get().addLine(text, msg.type === 'error' ? 'error' : 'output');
+          const text = stripPrompt(msg.data);
+          if (text) get().addLine(text, msg.type === 'error' ? 'error' : 'output');
         }
       } catch {
-        get().addLine(e.data, 'output');
+        get().addLine(stripPrompt(e.data) || e.data, 'output');
       }
     };
   },
@@ -112,21 +122,19 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
     set({ ws: null, connected: false, connecting: false, lines: [] });
   },
   sendCommand: (cmd: string) => {
-    const { ws, connected, history } = get();
+    const { ws, history } = get();
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       toast.error('Terminal not connected.');
       return;
     }
+    // Echo what the user actually typed (not the internally rewritten version)
+    get().addLine(cmd, 'input');
     ws.send(JSON.stringify({ input: cmd }));
     let nextHistory = history;
     if (cmd.trim()) {
       nextHistory = [cmd, ...history.slice(0, 49)];
     }
-    set({
-      history: nextHistory,
-      histIdx: -1,
-      input: '',
-    });
+    set({ history: nextHistory, histIdx: -1, input: '' });
   },
   handleArrowUp: () => {
     const { histIdx, history } = get();
