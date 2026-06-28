@@ -177,6 +177,8 @@ export function OutputConsole() {
   } = useEditorStore();
 
   const [isResizing, setIsResizing] = useState(false);
+  // Local line buffer — chars accumulate here until the user presses Enter
+  const [inputBuffer, setInputBuffer] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const desktopInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef  = useRef<HTMLInputElement>(null);
@@ -202,28 +204,60 @@ export function OutputConsole() {
 
   const focusInput = () => {
     if (typeof window !== 'undefined') {
-      if (window.innerWidth < 768) mobileInputRef.current?.focus();
-      else desktopInputRef.current?.focus();
+      // Use setTimeout to ensure the DOM is ready and focus lands reliably
+      // even on the second/third run when state transitions are batched
+      setTimeout(() => {
+        if (window.innerWidth < 768) mobileInputRef.current?.focus();
+        else desktopInputRef.current?.focus();
+      }, 50);
     }
   };
 
-  useEffect(() => { if (isRunning) focusInput(); }, [isRunning]);
+  useEffect(() => {
+    if (isRunning) {
+      // Blur first to force a fresh focus event on repeated runs
+      desktopInputRef.current?.blur();
+      mobileInputRef.current?.blur();
+      focusInput();
+    } else {
+      // Clear the buffer whenever the program stops
+      setInputBuffer('');
+    }
+  }, [isRunning]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (isRunning && (window as any).sendCInput) {
-      if (e.key === 'Enter') {
-        (window as any).sendCInput('\n');
-        if (desktopInputRef.current) desktopInputRef.current.value = '';
-      } else if (e.key.length === 1) {
-        (window as any).sendCInput(e.key);
-      } else if (e.key === 'Backspace') {
-        (window as any).sendCInput('\x7f');
-      }
+    if (!isRunning || !(window as any).sendCInput) return;
+    e.preventDefault(); // prevent browser from acting on special keys
+
+    if (e.key === 'Enter') {
+      // Flush the buffered line to the backend
+      (window as any).sendCInput(inputBuffer + '\n');
+      setInputBuffer('');
+    } else if (e.key === 'Backspace') {
+      // Delete last char from the local buffer — do NOT send to backend
+      setInputBuffer(prev => prev.slice(0, -1));
+    } else if (e.ctrlKey && e.key === 'c') {
+      // Ctrl+C — send interrupt and clear buffer
+      (window as any).sendCInput('\x03');
+      setInputBuffer('');
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      // Printable character — add to local buffer
+      setInputBuffer(prev => prev + e.key);
     }
   };
 
-  const sendEnter  = () => (window as any).sendCInput('\n');
-  const sendCtrlC  = () => (window as any).sendCInput('\x03');
+  const sendEnter = () => {
+    if ((window as any).sendCInput) {
+      (window as any).sendCInput(inputBuffer + '\n');
+      setInputBuffer('');
+    }
+  };
+  const sendCtrlC = () => {
+    if ((window as any).sendCInput) {
+      (window as any).sendCInput('\x03');
+      setInputBuffer('');
+    }
+  };
 
   // Parse diagnostics when there is stderr output from a non-running state
   const parsed = output?.stderr ? parseDiagnostics(output.stderr) : null;
@@ -314,10 +348,19 @@ export function OutputConsole() {
         )}
 
         {/* Streaming / interactive output (ws) */}
-        {hasWsOutput && (
+        {/* Show block whenever running OR there is output — cursor must appear
+            immediately on second run before the first ws message arrives */}
+        {(hasWsOutput || isRunning) && (
           <pre className="font-mono text-[12px] leading-relaxed whitespace-pre-wrap break-all pb-24 md:pb-2 text-gray-300">
             {wsOutput.map((text, i) => <span key={i}>{parseAnsi(text)}</span>)}
-            {isRunning && <span className="terminal-cursor" />}
+            {/* Show the local line buffer inline so the user can see & edit
+                their input before pressing Enter */}
+            {isRunning && (
+              <span className="text-white">
+                {inputBuffer}
+                <span className="terminal-cursor" />
+              </span>
+            )}
           </pre>
         )}
 
@@ -372,16 +415,11 @@ export function OutputConsole() {
             ref={mobileInputRef}
             type="text"
             autoFocus
+            value={inputBuffer}
             className="flex-1 bg-dark-950 border border-dark-600 rounded-lg px-3 py-2 text-white text-base outline-none focus:border-neb-500"
             placeholder="Type input…"
-            onKeyDown={e => { if (e.key === 'Enter') { sendEnter(); (e.target as any).value = ''; } }}
-            onChange={e => {
-              const val = (e.target as any).value;
-              if (val.length > 0) {
-                (window as any).sendCInput(val[val.length - 1]);
-                (e.target as any).value = '';
-              }
-            }}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendEnter(); } }}
+            onChange={e => setInputBuffer(e.target.value)}
           />
           <button onClick={sendEnter} className="bg-neb-700 hover:bg-neb-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg active:scale-95 transition-all">
             ENTER
@@ -392,7 +430,9 @@ export function OutputConsole() {
         </div>
       )}
 
-      {/* Desktop hidden input */}
+      {/* Desktop hidden input — always mounted so the ref is stable.
+           Positioned off-screen and invisible; receives keyboard events
+           when focusInput() is called on each run. */}
       <input
         ref={desktopInputRef}
         type="text"
@@ -400,8 +440,12 @@ export function OutputConsole() {
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        className="hidden md:block fixed opacity-0 left-[-9999px] top-0"
+        readOnly={!isRunning}
+        tabIndex={isRunning ? 0 : -1}
+        className="fixed opacity-0 pointer-events-none"
+        style={{ left: '-9999px', top: 0, width: 1, height: 1 }}
         onKeyDown={handleKeyDown}
+        onClick={focusInput}
       />
     </div>
   );

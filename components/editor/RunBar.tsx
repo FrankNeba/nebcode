@@ -17,7 +17,18 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
 
   const handleRun = () => {
     if (!activeFile?.content?.trim()) { toast.error('Write some code first!'); return; }
-    if (socketRef.current) socketRef.current.close();
+
+    // Strip all handlers from the old socket BEFORE closing it.
+    // Without this, the stale onclose fires asynchronously and calls
+    // setIsRunning(false) — overwriting the setIsRunning(true) below
+    // and leaving the terminal locked on every run after the first.
+    if (socketRef.current) {
+      socketRef.current.onopen    = null;
+      socketRef.current.onmessage = null;
+      socketRef.current.onclose   = null;
+      socketRef.current.onerror   = null;
+      socketRef.current.close();
+    }
 
     setIsRunning(true);
     setWsOutput([]);
