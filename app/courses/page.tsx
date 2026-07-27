@@ -137,7 +137,7 @@ export default function CoursesPage() {
                         ) : owned ? (
                           <span className="text-green-400 text-sm">Enrolled</span>
                         ) : (
-                          <span className="text-neb-400 text-sm">{Number(course.price).toLocaleString()} XAF</span>
+                          <span className="text-neb-400 text-sm">Premium</span>
                         )}
                       </div>
                     </div>

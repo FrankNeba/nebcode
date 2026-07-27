@@ -36,6 +36,10 @@ export const courseService = {
   deleteAdminCourse: (id: string) => api.delete(`/courses/admin/${id}/`),
   exportAdminCourseJson: (id: string) => api.get(`/courses/admin/${id}/export-json/`),
   updateAdminCourseJson: (id: string, data: any) => api.post(`/courses/admin/${id}/update-json/`, data),
+  importModuleJson: (courseId: string, data: any) => api.post(`/courses/admin/${courseId}/import-module/`, data),
+  reorderModules: (courseId: string, order: string[]) => api.post(`/courses/admin/${courseId}/reorder-modules/`, { order }),
+  importLessonJson: (moduleId: string, data: any) => api.post(`/courses/admin/modules/${moduleId}/import-lesson/`, data),
+  reorderLessons: (moduleId: string, order: string[]) => api.post(`/courses/admin/modules/${moduleId}/reorder-lessons/`, { order }),
   // Modules CRUD
   createAdminModule: (data: any) => api.post('/courses/admin/modules/', data),
   updateAdminModule: (id: string, data: any) => api.patch(`/courses/admin/modules/${id}/`, data),
@@ -69,11 +73,15 @@ export const paymentService = {
     api.post('/payments/initiate/', { course_id, phone_number, gateway }),
   getMyPurchases: () => api.get('/payments/my-purchases/'),
   getSubscriptionPrice: () => api.get('/payments/subscription/price/'),
-  initiateSubscription: (phone: string, gateway: string) =>
-    api.post('/payments/subscription/initiate/', { phone, gateway }),
+  initiateSubscription: (phone: string, gateway: string, plan_type: 'monthly' | 'yearly' = 'yearly') =>
+    api.post('/payments/subscription/initiate/', { phone, gateway, plan_type }),
   getSubscriptionStatus: () => api.get('/payments/subscription/status/'),
+  // Access codes
+  generateAccessCode: () => api.post('/payments/access-codes/generate/'),
+  listAccessCodes: () => api.get('/payments/access-codes/'),
+  deleteAccessCode: (id: string) => api.delete(`/payments/access-codes/${id}/delete/`),
+  redeemAccessCode: (code: string) => api.post('/payments/access-codes/redeem/', { code }),
 };
-
 
 export const progressService = {
   markComplete: (lesson_id: string) => api.post(`/progress/lessons/${lesson_id}/complete/`),

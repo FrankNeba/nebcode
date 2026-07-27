@@ -133,7 +133,7 @@ export default function DashboardPage() {
       {!loading && purchases.length === 0 && (
         <div className="card p-8 text-center">
           <BookOpen className="h-10 w-10 text-dark-500 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm mb-4">No courses yet. Start learning!</p>
+          <p className="text-gray-500 text-sm mb-4">No registered courses yet. Start learning!</p>
           <Link href="/courses" className="inline-flex items-center gap-1.5 text-sm text-neb-400 hover:text-neb-300 font-medium">
             Browse courses <ArrowRight className="h-4 w-4" />
           </Link>

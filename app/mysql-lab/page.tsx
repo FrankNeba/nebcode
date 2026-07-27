@@ -233,7 +233,6 @@ function MySQLLabContent() {
             <p className="font-semibold text-gray-300 mb-2">Tips</p>
             <p>↑ ↓ arrows to navigate history</p>
             <p className="mt-1">Session resets after 15 min of inactivity</p>
-            <p className="mt-1 text-neb-500/80 font-medium">Safe Sandbox Isolation Active</p>
           </div>
         </div>
       </div>

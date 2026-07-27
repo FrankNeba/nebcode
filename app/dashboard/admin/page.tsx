@@ -33,20 +33,22 @@ import {
   AlertCircle,
   ChevronRight,
   ChevronDown,
-  DollarSign
+  DollarSign,
+  Key,
+  GripVertical
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/auth.store';
-import { courseService, authService } from '@/services';
+import { courseService, authService, paymentService } from '@/services';
 import { Button } from '@/components/ui/Button';
+import rehypeRaw from 'rehype-raw';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
 import 'katex/dist/katex.min.css';
 
-type Tab = 'uploader' | 'courses' | 'users' | 'content' | 'referrals';
+type Tab = 'uploader' | 'courses' | 'users' | 'content' | 'referrals' | 'access-codes';
 
 export default function CourseAdminPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
@@ -68,6 +70,25 @@ export default function CourseAdminPage() {
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [isDeletingCourse, setIsDeletingCourse] = useState<string | null>(null);
+
+  // Access Codes State
+  const [accessCodes, setAccessCodes] = useState<any[]>([]);
+  const [accessCodesLoading, setAccessCodesLoading] = useState(false);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+  const [isDeletingCode, setIsDeletingCode] = useState<string | null>(null);
+
+  // Granular JSON Upload State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importTarget, setImportTarget] = useState<{ type: 'module' | 'lesson'; courseId?: string; moduleId?: string } | null>(null);
+  const [importJsonText, setImportJsonText] = useState('');
+  const [isSavingImportJson, setIsSavingImportJson] = useState(false);
+
+  // Drag and Drop State
+  const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
+  const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
+
+  // Content Preview State
+  const [previewItem, setPreviewItem] = useState<{ type: 'module' | 'lesson'; data: any } | null>(null);
 
   // Course JSON editor state
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
@@ -164,12 +185,161 @@ export default function CourseAdminPage() {
     }
   };
 
+  // Access Codes API Handlers
+  const fetchAccessCodes = async () => {
+    setAccessCodesLoading(true);
+    try {
+      const { data } = await paymentService.listAccessCodes();
+      setAccessCodes(data);
+    } catch {
+      toast.error('Failed to load access codes.');
+    } finally {
+      setAccessCodesLoading(false);
+    }
+  };
+
+  const handleGenerateAccessCode = async () => {
+    setIsGeneratingCode(true);
+    try {
+      const { data } = await paymentService.generateAccessCode();
+      toast.success(`Access code ${data.code} generated successfully!`);
+      fetchAccessCodes();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to generate access code.');
+    } finally {
+      setIsGeneratingCode(false);
+    }
+  };
+
+  const handleDeleteAccessCode = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this access code?')) return;
+    setIsDeletingCode(id);
+    try {
+      await paymentService.deleteAccessCode(id);
+      toast.success('Access code deleted successfully.');
+      fetchAccessCodes();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to delete access code.');
+    } finally {
+      setIsDeletingCode(null);
+    }
+  };
+
+  // Granular JSON Upload Handler
+  const handleSaveImportJson = async () => {
+    if (!importTarget) return;
+    let parsed: any;
+    try {
+      parsed = JSON.parse(importJsonText);
+    } catch (e: any) {
+      toast.error('Invalid JSON: ' + e.message);
+      return;
+    }
+    setIsSavingImportJson(true);
+    try {
+      if (importTarget.type === 'module') {
+        await courseService.importModuleJson(importTarget.courseId!, parsed);
+        toast.success('Module imported successfully!');
+      } else {
+        await courseService.importLessonJson(importTarget.moduleId!, parsed);
+        toast.success('Lesson imported successfully!');
+      }
+      setIsImportModalOpen(false);
+      setImportJsonText('');
+      // Reload course content
+      if (contentCourse) {
+        const { data } = await courseService.getCourse(contentCourse.id);
+        setContentCourse(data);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to import JSON.');
+    } finally {
+      setIsSavingImportJson(false);
+    }
+  };
+
+  // Drag and Drop Reordering Handlers
+  const handleModuleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+    setDraggedModuleId(id);
+  };
+
+  const handleModuleDrop = async (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!contentCourse || !draggedModuleId || draggedModuleId === targetId) return;
+
+    const modulesList = [...(contentCourse.modules || [])];
+    const draggedIdx = modulesList.findIndex(m => m.id === draggedModuleId);
+    const targetIdx = modulesList.findIndex(m => m.id === targetId);
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const [dragged] = modulesList.splice(draggedIdx, 1);
+    modulesList.splice(targetIdx, 0, dragged);
+
+    const orderedIds = modulesList.map(m => m.id);
+    try {
+      await courseService.reorderModules(contentCourse.id, orderedIds);
+      toast.success('Modules reordered successfully!');
+      setContentCourse({
+        ...contentCourse,
+        modules: modulesList.map((m, idx) => ({ ...m, order: idx })),
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to reorder modules.');
+    } finally {
+      setDraggedModuleId(null);
+    }
+  };
+
+  const handleLessonDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+    setDraggedLessonId(id);
+  };
+
+  const handleLessonDrop = async (e: React.DragEvent, moduleId: string, targetId: string) => {
+    e.preventDefault();
+    if (!contentCourse || !draggedLessonId || draggedLessonId === targetId) return;
+
+    const modulesList = [...(contentCourse.modules || [])];
+    const modIdx = modulesList.findIndex(m => m.id === moduleId);
+    if (modIdx === -1) return;
+
+    const lessonsList = [...(modulesList[modIdx].lessons || [])];
+    const draggedIdx = lessonsList.findIndex(l => l.id === draggedLessonId);
+    const targetIdx = lessonsList.findIndex(l => l.id === targetId);
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const [dragged] = lessonsList.splice(draggedIdx, 1);
+    lessonsList.splice(targetIdx, 0, dragged);
+
+    const orderedIds = lessonsList.map(l => l.id);
+    try {
+      await courseService.reorderLessons(moduleId, orderedIds);
+      toast.success('Lessons reordered successfully!');
+      modulesList[modIdx] = {
+        ...modulesList[modIdx],
+        lessons: lessonsList.map((l, idx) => ({ ...l, order: idx })),
+      };
+      setContentCourse({
+        ...contentCourse,
+        modules: modulesList,
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to reorder lessons.');
+    } finally {
+      setDraggedLessonId(null);
+    }
+  };
+
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (activeTab === 'referrals') {
       fetchReferralStats();
       fetchWithdrawals();
+    }
+    if (activeTab === 'access-codes') {
+      fetchAccessCodes();
     }
   }, [activeTab]);
 
@@ -535,6 +705,14 @@ export default function CourseAdminPage() {
           >
             <DollarSign className="h-3.5 w-3.5" /> Referrals
           </button>
+          <button
+            onClick={() => setActiveTab('access-codes')}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+              activeTab === 'access-codes' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Key className="h-3.5 w-3.5" /> Access Codes
+          </button>
         </div>
       </div>
 
@@ -603,9 +781,9 @@ export default function CourseAdminPage() {
                         <p className="text-xs font-bold text-white">{c.module_count || 0} Modules</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-gray-500 text-right">Price</p>
-                        <p className="text-xs font-extrabold text-neb-400 text-right">
-                          {c.is_free ? 'Free' : `${Number(c.price || 0).toLocaleString()} XAF`}
+                        <p className="text-[10px] text-gray-500 text-right">Access Tier</p>
+                        <p className="text-xs font-extrabold text-neb-450 text-right">
+                          {c.is_free ? 'Free Tier' : 'Premium Only'}
                         </p>
                       </div>
                     </div>
@@ -815,13 +993,21 @@ export default function CourseAdminPage() {
                   <option value="">— Select a course —</option>
                   {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
                 </select>
-                {contentCourse && (
-                  <button
-                    onClick={() => setAddItem({ type: 'module', courseId: contentCourse.id })}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-neb-700 hover:bg-neb-600 text-white text-xs font-bold rounded-xl transition"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Add Module
-                  </button>
+                 {contentCourse && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setAddItem({ type: 'module', courseId: contentCourse.id })}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-neb-700 hover:bg-neb-600 text-white text-xs font-bold rounded-xl transition"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Module
+                    </button>
+                    <button
+                      onClick={() => { setImportTarget({ type: 'module', courseId: contentCourse.id }); setImportJsonText(''); setIsImportModalOpen(true); }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-dark-800 hover:bg-dark-750 border border-dark-700 text-gray-305 hover:text-white text-xs font-bold rounded-xl transition shadow"
+                    >
+                      <Upload className="h-3.5 w-3.5 text-gray-400" /> Import Module JSON
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -845,10 +1031,24 @@ export default function CourseAdminPage() {
                   <p className="text-gray-500 text-sm text-center py-8">No modules yet. Click &ldquo;Add Module&rdquo; to create one.</p>
                 )}
                 {(contentCourse.modules || []).map((mod: any) => (
-                  <div key={mod.id} className="border border-dark-800 rounded-2xl overflow-hidden">
+                  <div
+                    key={mod.id}
+                    className={`border border-dark-800 rounded-2xl overflow-hidden transition-all ${
+                      draggedModuleId === mod.id ? 'opacity-40 border-neb-600' : ''
+                    }`}
+                  >
                     {/* Module Header */}
-                    <div className="flex items-center gap-3 px-5 py-3 bg-dark-900/60 hover:bg-dark-900/80 transition cursor-pointer"
-                      onClick={() => setExpandedModules(prev => { const n = new Set(prev); n.has(mod.id) ? n.delete(mod.id) : n.add(mod.id); return n; })}>
+                    <div
+                      draggable
+                      onDragStart={(e) => handleModuleDragStart(e, mod.id)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => handleModuleDrop(e, mod.id)}
+                      className="flex items-center gap-3 px-5 py-3 bg-dark-900/60 hover:bg-dark-900/80 transition cursor-pointer"
+                      onClick={() => setExpandedModules(prev => { const n = new Set(prev); n.has(mod.id) ? n.delete(mod.id) : n.add(mod.id); return n; })}
+                    >
+                      <div className="text-gray-500 cursor-grab active:cursor-grabbing hover:text-gray-300 p-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+                        <GripVertical className="h-4 w-4" />
+                      </div>
                       <span className="text-neb-400 w-4 flex items-center justify-center shrink-0">
                         {expandedModules.has(mod.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                       </span>
@@ -861,10 +1061,14 @@ export default function CourseAdminPage() {
                       <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                         <button onClick={() => setAddItem({ type: 'lesson', parentId: mod.id })}
                           className="p-1.5 text-neb-400 hover:bg-neb-900/30 rounded-lg transition" title="Add Lesson"><Plus className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => { setImportTarget({ type: 'lesson', moduleId: mod.id }); setImportJsonText(''); setIsImportModalOpen(true); }}
+                          className="p-1.5 text-neb-450 hover:bg-neb-900/30 rounded-lg transition" title="Import Lesson JSON"><Upload className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => setPreviewItem({ type: 'module', data: mod })}
+                          className="p-1.5 text-blue-450 hover:bg-blue-900/20 rounded-lg transition" title="Preview Module"><Eye className="h-3.5 w-3.5" /></button>
                         <button onClick={() => { setEditItem({ type: 'module', data: mod }); setEditForm({ title: mod.title, order: mod.order }); }}
-                          className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition"><Edit className="h-3.5 w-3.5" /></button>
+                          className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition" title="Edit"><Edit className="h-3.5 w-3.5" /></button>
                         <button onClick={() => setDeleteConfirm({ type: 'module', id: mod.id })}
-                          className="p-1.5 text-red-400 hover:bg-red-900/20 rounded-lg transition"><Trash2 className="h-3.5 w-3.5" /></button>
+                          className="p-1.5 text-red-450 hover:bg-red-900/20 rounded-lg transition" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
                     </div>
 
@@ -875,10 +1079,19 @@ export default function CourseAdminPage() {
                           <p className="text-gray-600 text-xs text-center py-4">No lessons in this module.</p>
                         )}
                         {(mod.lessons || []).map((lesson: any) => (
-                          <div key={lesson.id}>
+                          <div key={lesson.id} className={draggedLessonId === lesson.id ? 'opacity-40 bg-dark-900/30' : ''}>
                             {/* Lesson Row */}
-                            <div className="flex items-center gap-3 pl-10 pr-5 py-2.5 hover:bg-dark-900/40 transition cursor-pointer"
-                              onClick={() => setExpandedLessons(prev => { const n = new Set(prev); n.has(lesson.id) ? n.delete(lesson.id) : n.add(lesson.id); return n; })}>
+                            <div
+                              draggable
+                              onDragStart={(e) => handleLessonDragStart(e, lesson.id)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => handleLessonDrop(e, mod.id, lesson.id)}
+                              className="flex items-center gap-3 pl-10 pr-5 py-2.5 hover:bg-dark-900/40 transition cursor-pointer"
+                              onClick={() => setExpandedLessons(prev => { const n = new Set(prev); n.has(lesson.id) ? n.delete(lesson.id) : n.add(lesson.id); return n; })}
+                            >
+                              <div className="text-gray-600 cursor-grab active:cursor-grabbing hover:text-gray-450 p-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                <GripVertical className="h-3.5 w-3.5" />
+                              </div>
                               <span className="text-gray-500 w-4 flex items-center justify-center shrink-0">
                                 {expandedLessons.has(lesson.id) ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                               </span>
@@ -891,10 +1104,12 @@ export default function CourseAdminPage() {
                               <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                                 <button onClick={() => setAddItem({ type: 'section', parentId: lesson.id })}
                                   className="p-1.5 text-neb-400 hover:bg-neb-900/30 rounded-lg transition" title="Add Section"><Plus className="h-3.5 w-3.5" /></button>
+                                <button onClick={() => setPreviewItem({ type: 'lesson', data: lesson })}
+                                  className="p-1.5 text-blue-450 hover:bg-blue-900/20 rounded-lg transition" title="Preview Lesson"><Eye className="h-3.5 w-3.5" /></button>
                                 <button onClick={() => { setEditItem({ type: 'lesson', data: lesson }); setEditForm({ title: lesson.title, content: lesson.content || '', video_url: lesson.video_url || '', lesson_type: lesson.lesson_type, order: lesson.order }); }}
-                                  className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition"><Edit className="h-3.5 w-3.5" /></button>
+                                  className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition" title="Edit"><Edit className="h-3.5 w-3.5" /></button>
                                 <button onClick={() => setDeleteConfirm({ type: 'lesson', id: lesson.id })}
-                                  className="p-1.5 text-red-400 hover:bg-red-900/20 rounded-lg transition"><Trash2 className="h-3.5 w-3.5" /></button>
+                                  className="p-1.5 text-red-400 hover:bg-red-900/20 rounded-lg transition" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                               </div>
                             </div>
 
@@ -1020,9 +1235,9 @@ export default function CourseAdminPage() {
                         <p className="text-xs text-gray-400 mt-1">{courseData.description}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-xs text-gray-500">Price Structure</p>
-                        <p className="text-sm font-bold text-neb-400">
-                          {courseData.is_free ? 'Free Course' : `${Number(courseData.price || 0).toLocaleString()} XAF`}
+                        <p className="text-xs text-gray-500">Access Tier</p>
+                        <p className="text-sm font-bold text-neb-450">
+                          {courseData.is_free ? 'Free Tier' : 'Premium Only'}
                         </p>
                       </div>
                     </div>
@@ -1331,6 +1546,97 @@ export default function CourseAdminPage() {
             )}
           </div>
         )}
+
+        {/* ACCESS CODES TAB */}
+        {activeTab === 'access-codes' && (
+          <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-xl font-bold text-white">Access Codes</h2>
+                <p className="text-xs text-gray-400">Generate and manage unique 6-character premium registration access codes.</p>
+              </div>
+              <Button
+                onClick={handleGenerateAccessCode}
+                isLoading={isGeneratingCode}
+                className="shadow-neb bg-neb-600 hover:bg-neb-500 text-xs py-2 px-4 flex items-center gap-1.5 font-bold"
+              >
+                <Plus className="h-4 w-4" /> Generate Access Code
+              </Button>
+            </div>
+
+            {accessCodesLoading ? (
+              <div className="flex items-center justify-center py-20 bg-dark-900/30 border border-dark-800 rounded-2xl">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neb-500"></div>
+              </div>
+            ) : accessCodes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center p-12 bg-dark-900/20 border border-dark-800 rounded-2xl">
+                <Key className="h-12 w-12 text-dark-700 mb-3" />
+                <h3 className="text-base font-bold text-white mb-1">No access codes found</h3>
+                <p className="text-xs text-gray-400 max-w-sm mb-4">Click the button above to generate your first premium access code.</p>
+              </div>
+            ) : (
+              <div className="card bg-dark-900/20 border border-dark-800 overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-dark-950/80 border-b border-dark-800 text-gray-400 font-bold uppercase tracking-wider">
+                        <th className="p-4">Access Code</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Redeemed By</th>
+                        <th className="p-4">Redeemed At</th>
+                        <th className="p-4">Expiry Date</th>
+                        <th className="p-4">Created By</th>
+                        <th className="p-4">Created At</th>
+                        <th className="p-4 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-dark-850">
+                      {accessCodes.map((ac: any) => (
+                        <tr key={ac.id} className="hover:bg-dark-900/30 transition">
+                          <td className="p-4 font-mono font-bold text-neb-450 text-sm">
+                            {ac.code}
+                          </td>
+                          <td className="p-4">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                ac.is_used
+                                  ? 'bg-red-950/50 border border-red-900/40 text-red-405'
+                                  : 'bg-emerald-950/50 border border-emerald-800/40 text-emerald-450'
+                              }`}
+                            >
+                              {ac.is_used ? 'Used' : 'Unused'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-gray-300 font-semibold">{ac.used_by_email || '—'}</td>
+                          <td className="p-4 text-gray-400">
+                            {ac.used_at ? new Date(ac.used_at).toLocaleString() : '—'}
+                          </td>
+                          <td className="p-4 text-gray-400">
+                            {ac.expires_at ? new Date(ac.expires_at).toLocaleString() : '—'}
+                          </td>
+                          <td className="p-4 text-gray-300">{ac.created_by_email || 'System'}</td>
+                          <td className="p-4 text-gray-455">
+                            {new Date(ac.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              disabled={isDeletingCode === ac.id}
+                              onClick={() => handleDeleteAccessCode(ac.id)}
+                              className="p-1.5 rounded bg-red-950/30 border border-red-800/50 hover:bg-red-800 hover:text-white text-red-400 transition-all disabled:opacity-50"
+                              title="Delete Access Code"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* COURSE CREATION/EDIT MODAL */}
@@ -1370,19 +1676,7 @@ export default function CourseAdminPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-gray-400">Price (XAF)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    disabled={courseForm.is_free}
-                    value={courseForm.is_free ? 0 : courseForm.price}
-                    onChange={(e) => setCourseForm({ ...courseForm, price: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2 text-xs bg-dark-900 border border-dark-800 rounded-lg outline-none text-white focus:border-neb-500 transition disabled:opacity-50"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5 col-span-2">
                   <label className="text-xs font-semibold text-gray-400">Category</label>
                   <select
                     value={courseForm.category}
@@ -1397,19 +1691,6 @@ export default function CourseAdminPage() {
               </div>
 
               <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={courseForm.is_free}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      setCourseForm({ ...courseForm, is_free: checked, price: checked ? 0 : courseForm.price });
-                    }}
-                    className="rounded bg-dark-900 border-dark-800 text-neb-600 focus:ring-0"
-                  />
-                  <span>Mark as Free Course</span>
-                </label>
-
                 <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300">
                   <input
                     type="checkbox"
@@ -1858,6 +2139,184 @@ export default function CourseAdminPage() {
               <div className="flex items-center justify-center gap-3">
                 <button onClick={() => setDeleteConfirm(null)} className="px-5 py-2 rounded-lg text-xs font-bold text-gray-400 hover:text-white border border-dark-800 hover:bg-dark-900 transition">Cancel</button>
                 <Button onClick={handleDelete} isLoading={isDeletingItem} className="bg-red-700 hover:bg-red-600 text-xs py-2 px-5">Delete</Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Granular JSON Import Modal ── */}
+      {isImportModalOpen && importTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-12 bg-dark-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-dark-900 border border-dark-800 rounded-2xl shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-dark-800">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-neb-400" /> Import {importTarget.type === 'module' ? 'Module' : 'Lesson'} JSON
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">Paste or upload a valid JSON template for this {importTarget.type}.</p>
+              </div>
+              <button onClick={() => { setIsImportModalOpen(false); setImportJsonText(''); }} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-dark-800 transition">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 flex-1 flex flex-col gap-4">
+              <textarea
+                value={importJsonText}
+                onChange={(e) => setImportJsonText(e.target.value)}
+                className="w-full h-[40vh] bg-dark-950 border border-dark-800 rounded-xl p-4 text-xs font-mono text-gray-205 resize-none focus:outline-none focus:border-neb-600 transition"
+                spellCheck={false}
+                placeholder={`Paste ${importTarget.type} JSON structure here...`}
+              />
+              <div className="flex items-center justify-between gap-3 border-t border-dark-850 pt-4">
+                <p className="text-[10px] text-gray-600 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> Will append as a new {importTarget.type} in this hierarchy.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setIsImportModalOpen(false); setImportJsonText(''); }}
+                    className="px-4 py-2 rounded-lg text-xs font-bold text-gray-400 hover:text-white bg-transparent border border-dark-800 hover:bg-dark-900 transition"
+                  >
+                    Cancel
+                  </button>
+                  <Button
+                    onClick={handleSaveImportJson}
+                    isLoading={isSavingImportJson}
+                    disabled={!importJsonText.trim()}
+                    className="bg-neb-600 hover:bg-neb-500 text-xs py-2 px-5"
+                  >
+                    Import JSON
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Content Preview Modal ── */}
+      {previewItem && (() => {
+        const isModule = previewItem.type === 'module';
+        const isLesson = previewItem.type === 'lesson';
+        return (
+          <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-12 bg-dark-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+            <div className="w-full max-w-3xl bg-dark-900 border border-dark-800 rounded-2xl shadow-2xl flex flex-col">
+              <div className="flex items-center justify-between p-5 border-b border-dark-800">
+                <div>
+                  <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-dark-950 text-neb-400 border border-dark-850">
+                    {previewItem.type} Preview
+                  </span>
+                  <h3 className="text-base font-bold text-white mt-1.5">
+                    {previewItem.data.title}
+                  </h3>
+                </div>
+                <button onClick={() => setPreviewItem(null)} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-dark-800 transition">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto max-h-[70vh] flex flex-col gap-5">
+                {isModule && (
+                  <div className="flex flex-col gap-4">
+                    <p className="text-xs text-gray-455 italic">Showing outline of lessons under this module:</p>
+                    {(previewItem.data.lessons || []).length === 0 ? (
+                      <p className="text-gray-500 text-xs italic">No lessons in this module.</p>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {(previewItem.data.lessons || []).map((l: any, idx: number) => (
+                          <div key={l.id} className="p-4 bg-dark-950 border border-dark-850 rounded-xl">
+                            <h4 className="text-sm font-bold text-white mb-2">Lesson {idx + 1}: {l.title}</h4>
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-dark-800 text-gray-400">
+                                {l.lesson_type || 'text'}
+                              </span>
+                            </div>
+                            {l.content && (
+                              <div className="prose prose-invert prose-xs max-w-none line-clamp-3 overflow-hidden text-gray-400">
+                                <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                                  {l.content}
+                                </ReactMarkdown>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isLesson && (
+                  <div className="flex flex-col gap-5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-dark-950 text-gray-400">
+                        Type: {previewItem.data.lesson_type || 'text'}
+                      </span>
+                      {previewItem.data.video_url && (
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-red-950/40 text-red-400 border border-red-900/30">
+                          Has Video
+                        </span>
+                      )}
+                    </div>
+
+                    {previewItem.data.video_url && (() => {
+                      const videoId = previewItem.data.video_url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([^&?/]+)/)?.[1];
+                      if (videoId) {
+                        return (
+                          <div className="w-full aspect-video rounded-xl overflow-hidden border border-dark-800 shadow-2xl bg-black">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+                              className="w-full h-full"
+                              allowFullScreen
+                              title="Preview Video Player"
+                            />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {previewItem.data.content && (
+                      <div className="p-4 bg-dark-950 border border-dark-850 rounded-xl">
+                        <p className="text-[10px] text-gray-500 mb-3 font-semibold uppercase tracking-wider">Lesson Content Rendering:</p>
+                        <div className="prose prose-invert prose-sm max-w-none text-gray-300 leading-relaxed
+                          prose-headings:text-white prose-code:text-neb-400 prose-code:bg-dark-900 prose-code:rounded prose-code:px-1
+                          prose-pre:bg-dark-900 prose-pre:rounded-xl prose-pre:border prose-pre:border-dark-800 prose-pre:p-4">
+                          <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
+                            {previewItem.data.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subsections list inside preview */}
+                    {previewItem.data.sections && previewItem.data.sections.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Subsections:</p>
+                        {previewItem.data.sections.map((sec: any, sIdx: number) => (
+                          <div key={sec.id || sIdx} className="p-4 bg-dark-950 border border-dark-850 rounded-xl">
+                            <h5 className="text-xs font-bold text-neb-400 mb-2">{sec.title}</h5>
+                            <div className="prose prose-invert prose-xs max-w-none text-gray-400 leading-relaxed">
+                              <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                                {sec.content}
+                              </ReactMarkdown>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end p-5 border-t border-dark-800 bg-dark-950/30">
+                <button
+                  onClick={() => setPreviewItem(null)}
+                  className="px-5 py-2 rounded-lg text-xs font-bold bg-neb-600 hover:bg-neb-500 text-white transition-all shadow-neb"
+                >
+                  Close Preview
+                </button>
               </div>
             </div>
           </div>
