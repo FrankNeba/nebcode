@@ -125,11 +125,14 @@ export default function CourseAdminPage() {
   const [courseForm, setCourseForm] = useState({
     title: '',
     description: '',
+    thumbnail: '',
     price: 0,
     category: 'programming',
     is_free: false,
     is_active: true,
   });
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   // User Form State
   const [userForm, setUserForm] = useState({
@@ -405,11 +408,14 @@ export default function CourseAdminPage() {
     setCourseForm({
       title: course.title,
       description: course.description || '',
+      thumbnail: course.thumbnail || '',
       price: Number(course.price || 0),
       category: course.category || 'programming',
       is_free: !!course.is_free,
       is_active: !!course.is_active,
     });
+    setThumbnailFile(null);
+    setThumbnailPreview(course.thumbnail || null);
     setIsCourseModalOpen(true);
   };
 
@@ -418,22 +424,52 @@ export default function CourseAdminPage() {
     setCourseForm({
       title: '',
       description: '',
+      thumbnail: '',
       price: 0,
       category: 'programming',
       is_free: false,
       is_active: true,
     });
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
     setIsCourseModalOpen(true);
+  };
+
+  const handleThumbnailFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setThumbnailFile(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleClearThumbnail = () => {
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
+    setCourseForm({ ...courseForm, thumbnail: '' });
   };
 
   const handleSaveCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let payload: any;
+      if (thumbnailFile) {
+        const formData = new FormData();
+        formData.append('title', courseForm.title);
+        formData.append('description', courseForm.description);
+        formData.append('category', courseForm.category);
+        formData.append('is_active', String(courseForm.is_active));
+        formData.append('thumbnail', thumbnailFile);
+        payload = formData;
+      } else {
+        payload = { ...courseForm };
+      }
+
       if (selectedCourse) {
-        await courseService.updateAdminCourse(selectedCourse.id, courseForm);
+        await courseService.updateAdminCourse(selectedCourse.id, payload);
         toast.success('Course updated successfully!');
       } else {
-        await courseService.createAdminCourse(courseForm);
+        await courseService.createAdminCourse(payload);
         toast.success('Course created successfully!');
       }
       setIsCourseModalOpen(false);
@@ -1673,6 +1709,54 @@ export default function CourseAdminPage() {
                   placeholder="Provide a detailed outline of this course..."
                   className="w-full h-24 px-3.5 py-2 text-xs bg-dark-900 border border-dark-800 rounded-lg outline-none text-white focus:border-neb-500 transition resize-none"
                 />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-gray-400">Course Thumbnail Image</label>
+                
+                {thumbnailPreview ? (
+                  <div className="relative w-full h-36 rounded-xl overflow-hidden border border-dark-800 bg-dark-900 group">
+                    <img
+                      src={thumbnailPreview}
+                      alt="Thumbnail Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition">
+                      <label className="cursor-pointer px-3 py-1.5 bg-dark-800 hover:bg-dark-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-dark-700 transition">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Change Image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleThumbnailFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleClearThumbnail}
+                        className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-red-500/30 transition"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-dark-800 hover:border-neb-500/50 rounded-xl cursor-pointer bg-dark-900/50 hover:bg-dark-900 transition text-center p-4">
+                    <div className="p-2.5 rounded-full bg-neb-500/10 text-neb-400 mb-2">
+                      <Upload className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-300">Click to upload course image</span>
+                    <span className="text-[10px] text-gray-500 mt-1">PNG, JPG, WEBP or SVG (Recommended 16:9)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleThumbnailFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
