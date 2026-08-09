@@ -6,7 +6,7 @@ import '@/styles/globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Nebcode - C & MySQL Learning Platform For Cameroon students',
+    default: 'Nebcode - C & MySQL Learning Platform For Cameroon Computer science Advanced level students',
     template: '%s | Nebcode'
   },
   description: 'Master C programming and MySQL with our interactive, mobile-first IDE. Practice with real-time compilers and live database containers from anywhere.',
@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nebcode — Learn C & MySQL on Mobile',
-    description: 'Interactive IDE and MySQL containers in your pocket.',
+    title: 'Nebcode — Practice C & MySQL on Your Mobile Phone',
+    description: 'Practice and master C programming and MySQL with our interactive, mobile-first IDE. Practice with real-time compilers and live database containers from anywhere.',
     images: ['/logo.jpeg'],
   },
   manifest: '/manifest.json',

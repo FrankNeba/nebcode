@@ -1,24 +1,29 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert } from 'lucide-react';
+import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
-import { progressService, paymentService } from '@/services';
+import { progressService, paymentService, courseService } from '@/services';
 import { cn } from '@/lib/utils';
+import { Spinner } from '@/components/ui/Spinner';
+
+interface EnrolledCourse {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string | null;
+  category: string;
+  module_count: number;
+  is_free: boolean;
+  locked: boolean;
+}
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const [purchases, setPurchases] = useState<any[]>([]);
-  const [progress, setProgress] = useState<any[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
+  const [courseProgressMap, setCourseProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([paymentService.getMyPurchases(), progressService.getMyProgress()])
-      .then(([{ data: p }, { data: prog }]) => { setPurchases(p); setProgress(prog); })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const done = progress.filter(p => p.completed).length;
 
   const isSubscribed = user?.is_subscribed || user?.is_staff;
   const currentMonthPrefix = new Date().toISOString().slice(0, 7);
@@ -27,8 +32,69 @@ export default function DashboardPage() {
   const freeLimit = 2;
   const daysLeft = Math.max(0, freeLimit - daysUsedThisMonth);
 
+  useEffect(() => {
+    async function load() {
+      try {
+        // Fetch all courses and purchases in parallel
+        const [{ data: purchasesData }, { data: allCoursesData }, { data: progressData }] = await Promise.all([
+          paymentService.getMyPurchases(),
+          courseService.getCourses(),
+          progressService.getMyProgress(),
+        ]);
+
+        const purchaseList = purchasesData || [];
+        setPurchases(purchaseList);
+
+        const allCourses: EnrolledCourse[] = allCoursesData?.results || allCoursesData || [];
+        const purchasedCourseIds = new Set(purchaseList.map((p: any) => p.course_id || p.course));
+
+        // Filter to courses the user is enrolled in: free courses + purchased ones
+        // Include courses where user has made any progress (started but not purchased)
+        const completedLessons: any[] = progressData || [];
+        const coursesWithProgress = new Set(completedLessons.map((p: any) => String(p.course_id)));
+
+        const enrolled = allCourses.filter(
+          (c) => c.is_free || purchasedCourseIds.has(c.id) || isSubscribed || coursesWithProgress.has(c.id)
+        );
+        setEnrolledCourses(enrolled);
+
+        // Build a progress map: courseId -> { completed, total }
+        // We only have completed count from getMyProgress — group by course_id
+        const progressByCourse: Record<string, number> = {};
+        completedLessons.forEach((p: any) => {
+          const cId = String(p.course_id);
+          progressByCourse[cId] = (progressByCourse[cId] || 0) + 1;
+        });
+
+        // For total lessons per course, use module_count as an approximation
+        // or fetch individual course progress for enrolled ones
+        const progressMap: Record<string, { completed: number; total: number }> = {};
+        enrolled.forEach((course) => {
+          progressMap[course.id] = {
+            completed: progressByCourse[course.id] || 0,
+            total: 0, // we'll fill in from course detail if needed
+          };
+        });
+        setCourseProgressMap(progressMap);
+      } catch (e) {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [isSubscribed]);
+
+  const completedCourses = enrolledCourses.filter(
+    (c) => (courseProgressMap[c.id]?.completed || 0) > 0 && courseProgressMap[c.id]?.completed === courseProgressMap[c.id]?.total && courseProgressMap[c.id]?.total > 0
+  ).length;
+
+  const inProgressCourses = enrolledCourses.filter(
+    (c) => (courseProgressMap[c.id]?.completed || 0) > 0
+  ).length;
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
+    <div className="max-w-4xl mx-auto px-4 py-10 pb-32 md:pb-10">
       <div className="mb-8">
         <h1 className="font-bold text-2xl text-white">Hey, {user?.full_name?.split(' ')[0] || 'learner'} 👋</h1>
         <p className="text-gray-500 text-sm mt-1">Keep up the momentum!</p>
@@ -65,8 +131,8 @@ export default function DashboardPage() {
             <p className="text-white font-bold text-sm">Upgrade to Premium</p>
             <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">
               {daysLeft > 0
-                ? <>You have <strong className="text-amber-400">{daysLeft} free lab day{daysLeft !== 1 ? 's' : ''}</strong> remaining this month. Get unlimited C Editor &amp; MySQL Lab access with a monthly subscription.</>
-                : <>Your <strong className="text-red-400">2 free lab days</strong> for this month are used up. Subscribe to continue coding without interruption.</>
+                ? <><strong className="text-amber-400">{daysLeft} free lab day{daysLeft !== 1 ? 's' : ''}</strong> remaining this month. Get unlimited C Editor &amp; MySQL Lab access with a subscription.</>
+                : <><strong className="text-red-400">2 free lab days</strong> for this month are used up. Subscribe to continue coding without interruption.</>
               }
             </p>
           </div>
@@ -82,9 +148,9 @@ export default function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
-          { icon: BookOpen, label: 'Courses', value: purchases.length, color: 'text-neb-400' },
-          { icon: CheckCircle2, label: 'Completed', value: done, color: 'text-emerald-400' },
-          { icon: TrendingUp, label: 'In Progress', value: progress.length - done, color: 'text-amber-400' },
+          { icon: BookOpen, label: 'Enrolled', value: enrolledCourses.length, color: 'text-neb-400' },
+          { icon: TrendingUp, label: 'In Progress', value: inProgressCourses, color: 'text-amber-400' },
+          { icon: CheckCircle2, label: 'Completed', value: completedCourses, color: 'text-emerald-400' },
           ...(!isSubscribed ? [{ icon: Star, label: 'Lab Days Left', value: daysLeft, color: daysLeft > 0 ? 'text-amber-400' : 'text-red-400' }] : []),
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="card p-4 flex flex-col gap-2">
@@ -130,15 +196,91 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {!loading && purchases.length === 0 && (
-        <div className="card p-8 text-center">
-          <BookOpen className="h-10 w-10 text-dark-500 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm mb-4">No registered courses yet. Start learning!</p>
-          <Link href="/courses" className="inline-flex items-center gap-1.5 text-sm text-neb-400 hover:text-neb-300 font-medium">
-            Browse courses <ArrowRight className="h-4 w-4" />
+      {/* Enrolled Courses Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-lg text-white">My Courses</h2>
+          <Link href="/courses" className="text-xs text-neb-400 hover:text-neb-300 font-medium flex items-center gap-1 transition-colors">
+            Browse all <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-      )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Spinner className="h-8 w-8" />
+          </div>
+        ) : enrolledCourses.length === 0 ? (
+          <div className="card p-8 text-center">
+            <BookOpen className="h-10 w-10 text-dark-500 mx-auto mb-3" />
+            <p className="text-gray-500 text-sm mb-4">No enrolled courses yet. Start learning!</p>
+            <Link href="/courses" className="inline-flex items-center gap-1.5 text-sm text-neb-400 hover:text-neb-300 font-medium">
+              Browse courses <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {enrolledCourses.map((course) => {
+              const prog = courseProgressMap[course.id];
+              const completed = prog?.completed || 0;
+              const hasProgress = completed > 0;
+
+              return (
+                <Link key={course.id} href={`/courses/${course.id}`}>
+                  <div className="card card-hover p-4 flex gap-4 items-start group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-neb-900/10">
+                    {/* Thumbnail / Icon */}
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-dark-800 to-dark-950 flex items-center justify-center shrink-0 overflow-hidden border border-dark-700">
+                      {course.thumbnail ? (
+                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <BookOpen className="h-6 w-6 text-neb-500/60" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-sm text-white group-hover:text-neb-400 transition-colors line-clamp-1">{course.title}</h3>
+                        {hasProgress ? (
+                          <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-950/40 text-amber-400 border border-amber-900/30">
+                            In Progress
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-dark-800 text-gray-500 border border-dark-700">
+                            Not Started
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{course.description}</p>
+
+                      {/* Progress bar */}
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-dark-800 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-700",
+                              hasProgress ? "bg-neb-500" : "bg-dark-700"
+                            )}
+                            style={{ width: hasProgress ? `${Math.min(100, completed * 10)}%` : '0%' }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {hasProgress ? (
+                            <Play className="h-3 w-3 text-neb-400" />
+                          ) : (
+                            <Play className="h-3 w-3 text-gray-600" />
+                          )}
+                          <span className="text-[10px] text-gray-500 font-mono">
+                            {completed} done
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

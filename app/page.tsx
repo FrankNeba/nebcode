@@ -1,5 +1,20 @@
+import { Metadata } from 'next';
 import Link from 'next/link';
 import { Code2, Terminal, Smartphone, Zap, BookOpen, ArrowRight, Shield } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Nebcode — Learn C & MySQL Programming on Your Phone',
+  description: 'Nebcode is the interactive, mobile-first coding platform for Cameroonian students. Write and run real C programs, practice SQL with a live MySQL database, and earn verified certificates — all from your phone.',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Nebcode — C & MySQL Learning Platform for Cameroon',
+    description: 'Write, compile, and run C programs. Query a real MySQL database. Learn with structured courses — all from your phone.',
+    url: 'https://nebcode.ngwafrank.com',
+    type: 'website',
+  },
+};
 
 export default function Home() {
   return (
@@ -13,7 +28,7 @@ export default function Home() {
             <Zap className="h-3 w-3" /> Real code execution on any device
           </div>
           <h1 className="font-bold text-4xl sm:text-5xl text-white leading-tight mb-5">
-            Learn <span className="text-gradient">C & MySQL</span><br />from your phone
+            Learn <span className="text-gradient">C &amp; MySQL</span><br />from your phone
           </h1>
           <p className="text-gray-400 text-lg max-w-xl mx-auto mb-8 leading-relaxed">
             Nebcode gives students a full programming lab — write, compile, and run real code — no laptop needed.
@@ -30,7 +45,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="px-4 py-16 max-w-5xl mx-auto">
+      <section aria-label="Platform features" className="px-4 py-16 max-w-5xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             { icon: Code2, title: 'C File Explorer', desc: 'Create files and folders, switch between them, and run multi-file C projects.' },
