@@ -69,6 +69,12 @@ export function Navbar() {
           <Link href="/courses" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-dark-700 transition-all">
             <BookOpen className="h-4 w-4" /> Courses
           </Link>
+          <Link href="/pricing" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-dark-700 transition-all">
+            Pricing
+          </Link>
+          <Link href="/contact" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-dark-700 transition-all">
+            Contact
+          </Link>
           {isAuthenticated && (
             <>
               <Link href="/editor" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-dark-700 transition-all">
@@ -215,6 +221,12 @@ export function Navbar() {
           <div className="px-4 py-3 flex flex-col gap-1">
             <Link href="/courses" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-700 text-sm" onClick={() => setOpen(false)}>
               <BookOpen className="h-4 w-4" /> Courses
+            </Link>
+            <Link href="/pricing" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-700 text-sm" onClick={() => setOpen(false)}>
+              Pricing
+            </Link>
+            <Link href="/contact" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-700 text-sm" onClick={() => setOpen(false)}>
+              Contact Us
             </Link>
             {isAuthenticated && (
               <>
