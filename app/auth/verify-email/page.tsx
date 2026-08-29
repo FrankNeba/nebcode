@@ -27,11 +27,12 @@ function VerifyEmailContent() {
     let deviceId = localStorage.getItem('nebcode_device_id');
     if (!deviceId) {
       const { v4: uuidv4 } = require('uuid');
-      deviceId = uuidv4();
+      deviceId = uuidv4() as string;
       localStorage.setItem('nebcode_device_id', deviceId);
     }
+    const validDeviceId: string = deviceId;
 
-    authService.verifyEmail(token, deviceId)
+    authService.verifyEmail(token, validDeviceId)
       .then(async (res) => {
         const { access, refresh } = res.data;
 
