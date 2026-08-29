@@ -17,6 +17,7 @@ interface MySQLLabState {
   history: string[];
   histIdx: number;
   input: string;
+  expectingEcho: boolean;
   setInput: (val: string) => void;
   setHistIdx: (idx: number) => void;
   addLine: (text: string, type?: TerminalLine['type']) => void;
@@ -36,6 +37,7 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
   history: [],
   histIdx: -1,
   input: '',
+  expectingEcho: false,
   setInput: (input) => set({ input }),
   setHistIdx: (histIdx) => set({ histIdx }),
   addLine: (text, type = 'output') => {
@@ -106,7 +108,18 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'output' || msg.type === 'error') {
-          const text = stripPrompt(msg.data);
+          let text = stripPrompt(msg.data);
+          const { expectingEcho } = get();
+          if (expectingEcho && text) {
+            const semiIdx = text.indexOf(';');
+            if (semiIdx !== -1) {
+              text = text.slice(semiIdx + 1).replace(/^[\r\n]+/, '');
+              set({ expectingEcho: false });
+            } else {
+              // Semicolon not reached yet in streaming PTY chunk
+              return;
+            }
+          }
           if (text) get().addLine(text, msg.type === 'error' ? 'error' : 'output');
         }
       } catch {
@@ -119,7 +132,7 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
     if (ws) {
       ws.close();
     }
-    set({ ws: null, connected: false, connecting: false, lines: [] });
+    set({ ws: null, connected: false, connecting: false, lines: [], expectingEcho: false });
   },
   sendCommand: (cmd: string) => {
     const { ws, history } = get();
@@ -127,8 +140,9 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
       toast.error('Terminal not connected.');
       return;
     }
-    // Echo what the user actually typed (not the internally rewritten version)
+    // Echo what the user actually typed once in green
     get().addLine(cmd, 'input');
+    set({ expectingEcho: true });
     ws.send(JSON.stringify({ input: cmd }));
     let nextHistory = history;
     if (cmd.trim()) {

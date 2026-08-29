@@ -23,7 +23,15 @@ function VerifyEmailContent() {
       return;
     }
 
-    authService.verifyEmail(token)
+    // Get (or create) a stable device ID — same logic as auth.store.ts
+    let deviceId = localStorage.getItem('nebcode_device_id');
+    if (!deviceId) {
+      const { v4: uuidv4 } = require('uuid');
+      deviceId = uuidv4();
+      localStorage.setItem('nebcode_device_id', deviceId);
+    }
+
+    authService.verifyEmail(token, deviceId)
       .then(async (res) => {
         const { access, refresh } = res.data;
 

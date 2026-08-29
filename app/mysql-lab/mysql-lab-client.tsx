@@ -151,7 +151,7 @@ function MySQLLabContent() {
             {lines.map((line, i) => (
               <div key={i} className={cn(
                 "mb-1",
-                line.type === 'input' ? 'text-neb-400 font-semibold' :
+                line.type === 'input' ? 'text-green-400 font-semibold' :
                   line.type === 'error' ? 'text-red-400 font-medium' :
                     line.type === 'system' ? 'text-yellow-500/80 italic text-xs' :
                       'text-green-300'

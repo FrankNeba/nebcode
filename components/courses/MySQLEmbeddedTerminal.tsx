@@ -93,7 +93,7 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
         {lines.map((line, i) => (
           <div key={i} className={cn(
             "mb-0.5",
-            line.type === 'input' ? 'text-neb-400 font-semibold' :
+            line.type === 'input' ? 'text-green-400 font-semibold' :
               line.type === 'error' ? 'text-red-400 font-medium' :
                 line.type === 'system' ? 'text-yellow-500/80 italic text-[10px]' :
                   'text-green-300'

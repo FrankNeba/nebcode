@@ -2,7 +2,7 @@ import api from '@/lib/api';
 
 export const authService = {
   register: (d: any) => api.post('/auth/register/', d),
-  verifyEmail: (token: string) => api.post('/auth/verify-email/', { token }),
+  verifyEmail: (token: string, device_id?: string) => api.post('/auth/verify-email/', { token, ...(device_id ? { device_id } : {}) }),
   forgotPassword: (email: string) => api.post('/auth/forgot-password/', { email }),
   resetPassword: (d: any) => api.post('/auth/reset-password/', d),
   changePassword: (d: any) => api.post('/auth/change-password/', d),
