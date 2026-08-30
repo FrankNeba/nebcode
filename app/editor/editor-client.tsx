@@ -217,9 +217,7 @@ function EditorContent() {
             )}
           </div>
 
-          <div className="h-48 border-t border-dark-700">
-            <OutputConsole />
-          </div>
+          <OutputConsole />
         </div>
       </div>
     </div>

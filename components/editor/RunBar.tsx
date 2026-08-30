@@ -7,13 +7,25 @@ import toast from 'react-hot-toast';
 
 interface Props { showAnswerToggle?: boolean; lessonId?: string; isSidebarOpen?: boolean; onToggleSidebar?: () => void; }
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 import { getWsUrl } from '@/lib/api';
 
 export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSidebar }: Props) {
   const { activeFile, isRunning, setIsRunning, setWsOutput, appendWsOutput, setOutput, isMobileMode, setMobileMode, toggleAnswer, showAnswer } = useEditorStore();
   const socketRef = useRef<WebSocket | null>(null);
+
+  // Keep window.sendCInput always pointing to the live socket
+  useEffect(() => {
+    (window as any).sendCInput = (data: string) => {
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify({ type: 'input', data }));
+      }
+    };
+    return () => {
+      delete (window as any).sendCInput;
+    };
+  }, []);
 
   const handleRun = () => {
     if (!activeFile?.content?.trim()) { toast.error('Write some code first!'); return; }
@@ -67,13 +79,6 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
       toast.error('Connection error. Please check your network and try again.');
       setIsRunning(false);
     };
-  };
-
-  // Add handleInput to send typing to the socket
-  (window as any).sendCInput = (data: string) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: 'input', data }));
-    }
   };
 
   const handleSave = async () => {
