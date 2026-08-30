@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const currentMonthPrefix = new Date().toISOString().slice(0, 7);
   const labDays: string[] = user?.lab_access_days || [];
   const daysUsedThisMonth = labDays.filter((d: string) => d.startsWith(currentMonthPrefix)).length;
-  const freeLimit = 2;
+  const freeLimit = 3;
   const daysLeft = Math.max(0, freeLimit - daysUsedThisMonth);
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">
               {daysLeft > 0
                 ? <><strong className="text-amber-400">{daysLeft} free lab day{daysLeft !== 1 ? 's' : ''}</strong> remaining this month. Get unlimited C Editor &amp; MySQL Lab access with a subscription.</>
-                : <><strong className="text-red-400">2 free lab days</strong> for this month are used up. Subscribe to continue coding without interruption.</>
+                : <><strong className="text-red-400">3 free lab days</strong> for this month are used up. Subscribe to continue coding without interruption.</>
               }
             </p>
           </div>

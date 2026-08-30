@@ -52,7 +52,7 @@ function MySQLLabContent() {
   const currentMonthPrefix = new Date().toISOString().slice(0, 7);
   const labDays: string[] = user?.lab_access_days || [];
   const daysUsedThisMonth = labDays.filter((d: string) => d.startsWith(currentMonthPrefix)).length;
-  const freeLimit = 2;
+  const freeLimit = 3;
 
   useEffect(() => {
     if (isAuthenticated) connect();
@@ -157,7 +157,7 @@ function MySQLLabContent() {
                       'text-green-300'
               )}>
                 <pre className="whitespace-pre-wrap break-all font-mono text-xs md:text-[13px] leading-normal opacity-90">
-                  {line.text}
+                  {line.type === 'input' ? (line.text.startsWith('mysql>') ? line.text : `mysql> ${line.text}`) : line.text}
                 </pre>
               </div>
             ))}

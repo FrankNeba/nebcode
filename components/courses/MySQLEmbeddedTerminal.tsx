@@ -99,7 +99,9 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
                   'text-green-300'
           )}>
             <pre className="whitespace-pre-wrap break-all font-mono leading-normal">
-              {line.text.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\s*->\s*/gm, '')}
+              {line.type === 'input'
+                ? (line.text.startsWith('mysql>') ? line.text : `mysql> ${line.text}`)
+                : line.text.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\s*->\s*/gm, '')}
             </pre>
           </div>
         ))}

@@ -458,6 +458,8 @@ export default function CourseAdminPage() {
         formData.append('title', courseForm.title);
         formData.append('description', courseForm.description);
         formData.append('category', courseForm.category);
+        formData.append('price', String(courseForm.price));
+        formData.append('is_free', String(courseForm.is_free));
         formData.append('is_active', String(courseForm.is_active));
         formData.append('thumbnail', thumbnailFile);
         payload = formData;
@@ -791,25 +793,47 @@ export default function CourseAdminPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {courses.map((c: any) => (
-                  <div key={c.id} className="card p-5 bg-dark-900/40 border-dark-800 flex flex-col justify-between hover:border-dark-700 transition relative group">
-                    <div className="absolute top-4 right-4 flex items-center gap-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        c.is_active ? 'bg-green-950/50 border border-green-900/50 text-green-400' : 'bg-red-950/50 border border-red-900/50 text-red-400'
-                      }`}>
-                        {c.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="mb-3">
+                  <div key={c.id} className="card p-0 bg-dark-900/40 border-dark-800 flex flex-col justify-between hover:border-dark-700 transition relative group overflow-hidden">
+                    {/* Thumbnail Image Banner */}
+                    {c.thumbnail ? (
+                      <div className="relative w-full h-36 bg-dark-950 overflow-hidden border-b border-dark-800">
+                        <img
+                          src={c.thumbnail}
+                          alt={c.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-dark-900/90 via-transparent to-transparent" />
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-md ${
+                            c.is_active ? 'bg-green-950/80 border border-green-800/80 text-green-400' : 'bg-red-950/80 border border-red-800/80 text-red-400'
+                          }`}>
+                            {c.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <div className="absolute bottom-2 left-4 z-10">
+                          <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-dark-950/80 border border-dark-800 text-neb-400 backdrop-blur-md">
+                            {c.category}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 pb-0 flex items-center justify-between">
                         <span className="text-[9px] uppercase font-bold tracking-widest px-2.5 py-1 rounded bg-[#0d0d18] border border-dark-850 text-neb-400">
                           {c.category}
                         </span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          c.is_active ? 'bg-green-950/50 border border-green-900/50 text-green-400' : 'bg-red-950/50 border border-red-900/50 text-red-400'
+                        }`}>
+                          {c.is_active ? 'Active' : 'Inactive'}
+                        </span>
                       </div>
+                    )}
 
-                      <h3 className="text-base font-bold text-white mb-2 line-clamp-1">{c.title}</h3>
-                      <p className="text-xs text-gray-400 line-clamp-3 mb-4">{c.description || 'No description provided.'}</p>
-                    </div>
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-base font-bold text-white mb-2 line-clamp-1">{c.title}</h3>
+                        <p className="text-xs text-gray-400 line-clamp-3 mb-4">{c.description || 'No description provided.'}</p>
+                      </div>
 
                     <div className="border-t border-dark-800 pt-4 mt-2 flex items-center justify-between gap-4">
                       <div>
@@ -824,32 +848,33 @@ export default function CourseAdminPage() {
                       </div>
                     </div>
 
-                    {/* Quick actions hover overlay or button set */}
-                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-dark-850/40">
-                      <button
-                        onClick={() => handleOpenCourseEdit(c)}
-                        className="flex-1 py-1.5 bg-dark-800 hover:bg-dark-750 border border-dark-700 hover:text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
-                      >
-                        <Edit className="h-3 w-3" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleOpenCourseJsonEdit(c.id)}
-                        className="px-3 py-1.5 bg-neb-950/40 hover:bg-neb-900/50 border border-neb-900/30 text-neb-400 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
-                        title="Edit full course JSON structure"
-                      >
-                        <Code2 className="h-3 w-3" /> JSON
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete "${c.title}"?`)) {
-                            handleDeleteCourse(c.id);
-                          }
-                        }}
-                        disabled={isDeletingCourse === c.id}
-                        className="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/50 border border-red-900/30 text-red-400 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3 w-3" /> {isDeletingCourse === c.id ? 'Deleting...' : 'Delete'}
-                      </button>
+                      {/* Quick actions hover overlay or button set */}
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-dark-850/40">
+                        <button
+                          onClick={() => handleOpenCourseEdit(c)}
+                          className="flex-1 py-1.5 bg-dark-800 hover:bg-dark-750 border border-dark-700 hover:text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
+                        >
+                          <Edit className="h-3 w-3" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleOpenCourseJsonEdit(c.id)}
+                          className="px-3 py-1.5 bg-neb-950/40 hover:bg-neb-900/50 border border-neb-900/30 text-neb-400 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
+                          title="Edit full course JSON structure"
+                        >
+                          <Code2 className="h-3 w-3" /> JSON
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete "${c.title}"?`)) {
+                              handleDeleteCourse(c.id);
+                            }
+                          }}
+                          disabled={isDeletingCourse === c.id}
+                          className="px-3 py-1.5 bg-red-950/40 hover:bg-red-900/50 border border-red-900/30 text-red-400 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3 w-3" /> {isDeletingCourse === c.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1135,7 +1160,9 @@ export default function CourseAdminPage() {
                                 <p className="text-xs font-semibold text-gray-200 truncate flex items-center gap-1.5">
                                   <FileText className="h-3.5 w-3.5 text-gray-400 shrink-0" /> {lesson.title}
                                 </p>
-                                <p className="text-[10px] text-gray-600">{lesson.lesson_type} · order {lesson.order} · {(lesson.sections || []).length} sections</p>
+                                <p className="text-[10px] text-gray-600">
+                                  {lesson.lesson_type} · order {lesson.order} · {(lesson.sections || []).length} sections · {(lesson.exercises || []).length} exercises
+                                </p>
                               </div>
                               <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                                 <button onClick={() => setAddItem({ type: 'section', parentId: lesson.id })}
@@ -1149,28 +1176,87 @@ export default function CourseAdminPage() {
                               </div>
                             </div>
 
-                            {/* Sections */}
+                            {/* Lesson Expanded Details (Content, Sections, Exercises) */}
                             {expandedLessons.has(lesson.id) && (
-                              <div className="bg-dark-950/60 divide-y divide-dark-850/20">
-                                {(lesson.sections || []).length === 0 && (
-                                  <p className="text-gray-700 text-[11px] text-center py-3 pl-16">No sections.</p>
-                                )}
-                                {(lesson.sections || []).map((sec: any) => (
-                                  <div key={sec.id} className="flex items-center gap-3 pl-20 pr-5 py-2 hover:bg-dark-900/30 transition">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-[11px] font-medium text-gray-300 truncate flex items-center gap-1.5">
-                                        <Minus className="h-3 w-3 text-neb-500 shrink-0" /> {sec.title}
-                                      </p>
-                                      <p className="text-[10px] text-gray-600 line-clamp-1">{(sec.content || '').slice(0, 80) || '(empty)'}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button onClick={() => { setEditItem({ type: 'section', data: sec }); setEditForm({ title: sec.title, content: sec.content || '', order: sec.order }); }}
-                                        className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition"><Edit className="h-3.5 w-3.5" /></button>
-                                      <button onClick={() => setDeleteConfirm({ type: 'section', id: sec.id })}
-                                        className="p-1.5 text-red-400 hover:bg-red-900/20 rounded-lg transition"><Trash2 className="h-3.5 w-3.5" /></button>
+                              <div className="bg-dark-950/70 p-4 pl-16 space-y-4 border-t border-dark-850/40 divide-y divide-dark-850/30">
+                                {/* Main Content Preview */}
+                                {lesson.content && (
+                                  <div className="pt-2">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-neb-400 mb-1 flex items-center gap-1">
+                                      <FileText className="h-3 w-3" /> Lesson Body Content
+                                    </p>
+                                    <div className="bg-dark-900/80 p-3 rounded-lg border border-dark-800 text-xs text-gray-300 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                                      {lesson.content}
                                     </div>
                                   </div>
-                                ))}
+                                )}
+
+                                {/* Sections List */}
+                                <div className="pt-2">
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1">
+                                    <Layers className="h-3 w-3" /> Sections ({(lesson.sections || []).length})
+                                  </p>
+                                  {(lesson.sections || []).length === 0 ? (
+                                    <p className="text-gray-600 text-[11px] italic">No extra sections in this lesson.</p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {(lesson.sections || []).map((sec: any) => (
+                                        <div key={sec.id} className="flex items-center gap-3 p-2.5 bg-dark-900/50 rounded-lg border border-dark-800/60 hover:bg-dark-900 transition">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-[11px] font-semibold text-gray-200 truncate flex items-center gap-1.5">
+                                              <Minus className="h-3 w-3 text-neb-500 shrink-0" /> {sec.title}
+                                            </p>
+                                            <p className="text-[10px] text-gray-500 line-clamp-1">{(sec.content || '').slice(0, 100) || '(no content)'}</p>
+                                          </div>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <button onClick={() => { setEditItem({ type: 'section', data: sec }); setEditForm({ title: sec.title, content: sec.content || '', order: sec.order }); }}
+                                              className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition"><Edit className="h-3.5 w-3.5" /></button>
+                                            <button onClick={() => setDeleteConfirm({ type: 'section', id: sec.id })}
+                                              className="p-1.5 text-red-400 hover:bg-red-900/20 rounded-lg transition"><Trash2 className="h-3.5 w-3.5" /></button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Exercises List */}
+                                <div className="pt-2">
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1">
+                                    <Code2 className="h-3 w-3" /> Exercises ({(lesson.exercises || []).length})
+                                  </p>
+                                  {(lesson.exercises || []).length === 0 ? (
+                                    <p className="text-gray-600 text-[11px] italic">No exercises in this lesson.</p>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      {(lesson.exercises || []).map((ex: any, exIdx: number) => (
+                                        <div key={ex.id || exIdx} className="p-3 bg-dark-900/60 rounded-lg border border-amber-900/30 space-y-1.5">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                                              Exercise #{ex.order || exIdx + 1} ({ex.exercise_type || 'code'})
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-gray-200 font-medium whitespace-pre-wrap">{ex.question}</p>
+                                          {ex.starter_code && (
+                                            <details className="mt-1">
+                                              <summary className="text-[10px] text-gray-400 cursor-pointer hover:text-gray-200 font-mono">View Starter Code</summary>
+                                              <pre className="mt-1 p-2 bg-black/40 rounded text-[11px] text-green-400 font-mono overflow-x-auto">{ex.starter_code}</pre>
+                                            </details>
+                                          )}
+                                          {ex.answer?.correct_code && (
+                                            <details className="mt-1">
+                                              <summary className="text-[10px] text-emerald-400 cursor-pointer hover:text-emerald-300 font-mono">View Correct Code & Explanation</summary>
+                                              <div className="mt-1 p-2 bg-black/50 rounded text-[11px] text-emerald-300 font-mono space-y-1 overflow-x-auto">
+                                                <pre>{ex.answer.correct_code}</pre>
+                                                {ex.answer.explanation && <p className="text-gray-400 text-[10px] font-sans pt-1 border-t border-dark-800">{ex.answer.explanation}</p>}
+                                              </div>
+                                            </details>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2030,9 +2116,10 @@ export default function CourseAdminPage() {
           } finally { setIsSavingEdit(false); }
         };
         return (
-          <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-10 bg-dark-950/80 backdrop-blur-sm overflow-y-auto">
-            <div className="w-full max-w-2xl bg-dark-900 border border-dark-800 rounded-2xl shadow-2xl">
-              <div className="flex items-center justify-between p-5 border-b border-dark-800">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 lg:p-6 bg-dark-950/85 backdrop-blur-md overflow-y-auto">
+            <div className="w-full max-w-2xl lg:max-w-6xl xl:max-w-7xl bg-dark-900 border border-dark-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-dark-800 shrink-0 bg-dark-950/40">
                 <h3 className="text-sm font-bold text-white capitalize flex items-center gap-2">
                   <Edit className="h-4 w-4 text-neb-400" /> Edit {editItem.type}: <span className="text-neb-300">{editItem.data.title}</span>
                 </h3>
@@ -2041,85 +2128,127 @@ export default function CourseAdminPage() {
                 </button>
               </div>
 
-              <div className="p-5 flex flex-col gap-4">
-                {/* Title */}
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 block">Title</label>
-                  <input
-                    value={editForm.title || ''}
-                    onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
-                    className="w-full bg-dark-950 border border-dark-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-neb-600"
-                  />
-                </div>
-
-                {/* Order */}
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 block">Order</label>
-                  <input type="number"
-                    value={editForm.order ?? 0}
-                    onChange={e => setEditForm(f => ({ ...f, order: Number(e.target.value) }))}
-                    className="w-32 bg-dark-950 border border-dark-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-neb-600"
-                  />
-                </div>
-
-                {/* Lesson type */}
-                {isLesson && (
+              {/* Modal Body: Split view on Desktop */}
+              <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-dark-800">
+                {/* Left Column: Form Editor */}
+                <div className={`p-6 flex flex-col gap-4.5 ${isLesson || isSection ? 'lg:col-span-6' : 'lg:col-span-12 max-w-2xl mx-auto w-full'}`}>
+                  {/* Title */}
                   <div>
-                    <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 block">Lesson Type</label>
-                    <select
-                      value={editForm.lesson_type || 'text'}
-                      onChange={e => setEditForm(f => ({ ...f, lesson_type: e.target.value }))}
-                      className="bg-dark-950 border border-dark-800 text-gray-200 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-neb-600"
-                    >
-                      <option value="text">Text</option>
-                      <option value="video">Video</option>
-                      <option value="mixed">Mixed</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Video URL */}
-                {isLesson && (
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 block">Video URL (YouTube)</label>
+                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5 block">Title</label>
                     <input
-                      value={editForm.video_url || ''}
-                      onChange={e => setEditForm(f => ({ ...f, video_url: e.target.value }))}
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      className="w-full bg-dark-950 border border-dark-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-neb-600"
+                      value={editForm.title || ''}
+                      onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                      className="w-full bg-dark-950 border border-dark-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-neb-600 transition"
                     />
                   </div>
-                )}
 
-                {/* Raw content textarea for lesson or section */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Order */}
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5 block">Order Index</label>
+                      <input type="number"
+                        value={editForm.order ?? 0}
+                        onChange={e => setEditForm(f => ({ ...f, order: Number(e.target.value) }))}
+                        className="w-full bg-dark-950 border border-dark-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-neb-600 transition"
+                      />
+                    </div>
+
+                    {/* Lesson type */}
+                    {isLesson && (
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5 block">Lesson Type</label>
+                        <select
+                          value={editForm.lesson_type || 'text'}
+                          onChange={e => setEditForm(f => ({ ...f, lesson_type: e.target.value }))}
+                          className="w-full bg-dark-950 border border-dark-800 text-gray-200 text-sm rounded-xl px-3.5 py-2 focus:outline-none focus:border-neb-600 transition"
+                        >
+                          <option value="text">Text</option>
+                          <option value="video">Video</option>
+                          <option value="mixed">Mixed</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Video URL */}
+                  {isLesson && (
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5 block">Video URL (YouTube)</label>
+                      <input
+                        value={editForm.video_url || ''}
+                        onChange={e => setEditForm(f => ({ ...f, video_url: e.target.value }))}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        className="w-full bg-dark-950 border border-dark-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-neb-600 transition"
+                      />
+                    </div>
+                  )}
+
+                  {/* Raw content textarea */}
+                  {(isLesson || isSection) && (
+                    <div className="flex-1 flex flex-col min-h-[280px]">
+                      <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Content <span className="text-neb-400 font-normal normal-case">(Markdown & KaTeX $E=mc^2$)</span></span>
+                        <span className="text-[10px] text-gray-500 font-mono">{(editForm.content || '').length} chars</span>
+                      </label>
+                      <textarea
+                        value={editForm.content || ''}
+                        onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))}
+                        className="w-full flex-1 min-h-[260px] bg-dark-950 border border-dark-800 rounded-xl p-4 text-xs font-mono text-gray-200 resize-y focus:outline-none focus:border-neb-600 transition leading-relaxed"
+                        spellCheck={false}
+                        placeholder="Write Markdown here..."
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Live Preview (Desktop) */}
                 {(isLesson || isSection) && (
-                  <div>
-                    <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-1.5 flex items-center gap-2">
-                      Content <span className="text-neb-400 normal-case font-normal">(raw Markdown / KaTeX — e.g. $E=mc^2$)</span>
-                    </label>
-                    <textarea
-                      value={editForm.content || ''}
-                      onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))}
-                      rows={14}
-                      className="w-full bg-dark-950 border border-dark-800 rounded-xl p-4 text-xs font-mono text-gray-200 resize-y focus:outline-none focus:border-neb-600 transition leading-relaxed"
-                      spellCheck={false}
-                      placeholder="Write Markdown here. Use $...$ for inline KaTeX and $$...$$ for block equations."
-                    />
-                    {editForm.content && (
-                      <details className="mt-2">
-                        <summary className="text-[10px] text-gray-500 cursor-pointer select-none hover:text-gray-300 transition">▶ Preview rendered output</summary>
-                        <div className="mt-2 p-4 bg-dark-950 border border-dark-800 rounded-xl text-sm text-gray-200 prose prose-invert prose-sm max-w-none overflow-auto max-h-64">
+                  <div className="lg:col-span-6 p-6 bg-dark-950/50 flex flex-col gap-3 min-h-[400px]">
+                    <div className="flex items-center justify-between pb-2 border-b border-dark-800/80">
+                      <span className="text-xs font-bold uppercase tracking-wider text-neb-400 flex items-center gap-1.5">
+                        <Eye className="h-4 w-4" /> Live Render Preview
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-neb-950 border border-neb-800 text-neb-300 font-mono">
+                        Auto-syncing
+                      </span>
+                    </div>
+
+                    <div className="flex-1 bg-dark-950 border border-dark-800 rounded-xl p-5 overflow-y-auto max-h-[550px] space-y-4">
+                      {editForm.title && (
+                        <h2 className="text-xl font-extrabold text-white border-b border-dark-800 pb-2">
+                          {editForm.title}
+                        </h2>
+                      )}
+
+                      {editForm.video_url && (
+                        <div className="aspect-video w-full rounded-xl bg-black overflow-hidden border border-dark-800 flex items-center justify-center">
+                          <iframe
+                            src={editForm.video_url.replace('watch?v=', 'embed/')}
+                            className="w-full h-full"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
+
+                      {editForm.content ? (
+                        <div className="prose prose-invert prose-sm max-w-none text-gray-200 leading-relaxed space-y-3">
                           <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
                             {editForm.content}
                           </ReactMarkdown>
                         </div>
-                      </details>
-                    )}
+                      ) : (
+                        <div className="h-48 flex flex-col items-center justify-center text-gray-600 text-xs italic">
+                          <FileText className="h-8 w-8 text-gray-700 mb-2" />
+                          Start typing in the content editor on the left to view real-time rendered preview here.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-3 p-5 border-t border-dark-800">
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-dark-800 shrink-0 bg-dark-950/40">
                 <button onClick={() => setEditItem(null)} className="px-4 py-2 rounded-lg text-xs font-bold text-gray-400 hover:text-white border border-dark-800 hover:bg-dark-900 transition">
                   Cancel
                 </button>

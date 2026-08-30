@@ -5,7 +5,6 @@ const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const api = axios.create({
   baseURL: `${BASE}/api/v1`,
-  headers: { 'Content-Type': 'application/json' },
 });
 
 api.interceptors.request.use((cfg) => {
@@ -18,6 +17,14 @@ api.interceptors.request.use((cfg) => {
       cfg.headers['X-Device-ID'] = deviceId;
     }
   }
+
+  // If request data is FormData, remove Content-Type so browser sets boundary automatically
+  if (cfg.data instanceof FormData) {
+    delete cfg.headers['Content-Type'];
+  } else if (!cfg.headers['Content-Type']) {
+    cfg.headers['Content-Type'] = 'application/json';
+  }
+
   return cfg;
 });
 

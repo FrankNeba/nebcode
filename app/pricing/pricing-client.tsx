@@ -196,11 +196,6 @@ export default function PricingPageClient() {
                   XAF / {planType === 'monthly' ? 'month' : 'year'}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                {planType === 'monthly'
-                  ? 'Renews same day every month. Cancel anytime.'
-                  : 'Full year access. Same date next year. Best value.'}
-              </p>
             </div>
 
             {user?.is_subscribed ? (
