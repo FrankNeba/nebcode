@@ -124,23 +124,23 @@ export default function ProfilePage() {
         </p>
 
         {/* Referral code + link */}
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <Input
-              label="Your Referral Code"
-              value={user?.referral_code || ''}
-              disabled
-              className="bg-dark-950 border-dark-800 text-white font-mono text-center font-bold tracking-wider"
-            />
+        <div className="flex flex-wrap gap-2">
+          <Input
+            label="Your Referral Code"
+            value={user?.referral_code || ''}
+            disabled
+            className="bg-dark-950 border-dark-800 text-white font-mono text-center font-bold tracking-wider w-full"
+          />
+          <div className="flex gap-2 w-full">
+            <Button onClick={handleCopy} variant="secondary" className="flex-1 h-[42px]" title="Copy code">
+              {copied ? <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-400" /> : <Copy className="h-4 w-4 mr-1" />}
+              {copied ? 'Copied' : 'Copy Code'}
+            </Button>
+            <Button onClick={handleCopyLink} variant="secondary" className="flex-1 h-[42px]" title="Copy referral link">
+              {copiedLink ? <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-400" /> : <Link2 className="h-4 w-4 mr-1" />}
+              {copiedLink ? 'Copied!' : 'Copy Link'}
+            </Button>
           </div>
-          <Button onClick={handleCopy} variant="secondary" className="h-[42px] shrink-0" title="Copy code">
-            {copied ? <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-400" /> : <Copy className="h-4 w-4 mr-1" />}
-            {copied ? 'Copied' : 'Code'}
-          </Button>
-          <Button onClick={handleCopyLink} variant="secondary" className="h-[42px] shrink-0" title="Copy referral link">
-            {copiedLink ? <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-400" /> : <Link2 className="h-4 w-4 mr-1" />}
-            {copiedLink ? 'Copied!' : 'Link'}
-          </Button>
         </div>
 
         {/* Balance & Withdraw action */}
