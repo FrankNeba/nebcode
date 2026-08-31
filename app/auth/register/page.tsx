@@ -210,7 +210,7 @@ export default function RegisterPage() {
           <CheckCircle2 className="h-10 w-10 text-emerald-400" />
         </div>
         <h2 className="font-bold text-2xl text-white mb-3">Check your email</h2>
-        <p className="text-gray-400 text-sm leading-relaxed">
+        <p className="text-gray-400 text-sm leading-relaxed mb-4">
           We've sent a verification link to <br />
           <strong className="text-neb-400">{form.email}</strong>.
           {form.access_code && (
@@ -218,14 +218,24 @@ export default function RegisterPage() {
               ✓ Premium access will be activated once you verify your email.
             </span>
           )}
-          <span className="text-red-500">If you don't see the email within a few minutes, please check your spam folder.</span>
         </p>
-        <Link href="/auth/login" className="block mt-8">
+
+        {/* Spam notice — prominent callout */}
+        <div className="flex items-start gap-3 bg-amber-950/40 border border-amber-600/40 rounded-xl px-4 py-3 text-left mb-6">
+          <span className="text-amber-400 text-lg shrink-0 mt-0.5">⚠️</span>
+          <p className="text-amber-300 text-xs leading-relaxed">
+            <span className="font-bold block mb-0.5">Don't see it?</span>
+            Please check your <span className="font-bold">spam</span> or <span className="font-bold">junk</span> folder — our verification emails sometimes end up there. Mark it as "Not Spam" to ensure future emails reach your inbox.
+          </p>
+        </div>
+
+        <Link href="/auth/login" className="block">
           <Button variant="secondary" className="w-full py-6">Return to Sign In</Button>
         </Link>
       </div>
     </div>
   );
+
 
   return (
     <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 py-12 bg-dark-950 relative overflow-hidden">

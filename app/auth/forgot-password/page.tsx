@@ -24,8 +24,20 @@ export default function ForgotPasswordPage() {
       <div className="card p-8 max-w-sm w-full text-center">
         <Mail className="h-12 w-12 text-neb-400 mx-auto mb-4" />
         <h2 className="font-bold text-xl text-white mb-2">Check your inbox</h2>
-        <p className="text-gray-400 text-sm">Reset link sent to <strong className="text-white">{email}</strong>. Expires in 15 min.</p>
-        <Link href="/auth/login" className="block mt-6"><Button variant="secondary" className="w-full">Back to sign in</Button></Link>
+        <p className="text-gray-400 text-sm mb-4">
+          Reset link sent to <strong className="text-white">{email}</strong>. Expires in 15 min.
+        </p>
+
+        {/* Spam notice */}
+        <div className="flex items-start gap-3 bg-amber-950/40 border border-amber-600/40 rounded-xl px-4 py-3 text-left mb-6">
+          <span className="text-amber-400 text-lg shrink-0 mt-0.5">⚠️</span>
+          <p className="text-amber-300 text-xs leading-relaxed">
+            <span className="font-bold block mb-0.5">Don't see it?</span>
+            Check your <span className="font-bold">spam</span> or <span className="font-bold">junk</span> folder — reset emails sometimes land there.
+          </p>
+        </div>
+
+        <Link href="/auth/login"><Button variant="secondary" className="w-full">Back to sign in</Button></Link>
       </div>
     </div>
   );
