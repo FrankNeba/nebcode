@@ -5,7 +5,7 @@ import { authService } from '@/services';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { CheckCircle2, Copy } from 'lucide-react';
+import { CheckCircle2, Copy, Link2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
@@ -17,6 +17,7 @@ export default function ProfilePage() {
 
   // Referral states
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [momoNumber, setMomoNumber] = useState('');
   const [momoName, setMomoName] = useState('');
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -54,6 +55,16 @@ export default function ProfilePage() {
       setCopied(true);
       toast.success('Referral code copied!');
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (user?.referral_code) {
+      const link = `${window.location.origin}/auth/register?ref=${user.referral_code}`;
+      navigator.clipboard.writeText(link);
+      setCopiedLink(true);
+      toast.success('Referral link copied!');
+      setTimeout(() => setCopiedLink(false), 2000);
     }
   };
 
@@ -106,13 +117,13 @@ export default function ProfilePage() {
       <div className="card p-5 mb-4 flex flex-col gap-4 border border-neb-600/20 bg-dark-900/40">
         <h2 className="font-bold text-white text-lg flex items-center gap-2">
           <span>Refer & Earn</span>
-          <Badge variant="secondary" className="text-xs">1,000 FRS / Friend</Badge>
+          <Badge variant="secondary" className="text-xs">Up to 1,000 FRS / Friend</Badge>
         </h2>
         <p className="text-sm text-gray-400">
-          Share your referral code. You earn <strong>1,000 FRS</strong> for every referral who signs up and subscribes.
+          Share your link and earn: <strong className="text-neb-300">1,000 FRS</strong> per yearly sub, <strong className="text-neb-300">500 FRS</strong> for a friend's first monthly, and <strong className="text-neb-300">100 FRS</strong> on every renewal.
         </p>
 
-        {/* Referral code displaying */}
+        {/* Referral code + link */}
         <div className="flex gap-2 items-end">
           <div className="flex-1">
             <Input
@@ -122,9 +133,13 @@ export default function ProfilePage() {
               className="bg-dark-950 border-dark-800 text-white font-mono text-center font-bold tracking-wider"
             />
           </div>
-          <Button onClick={handleCopy} variant="secondary" className="h-[42px] shrink-0">
+          <Button onClick={handleCopy} variant="secondary" className="h-[42px] shrink-0" title="Copy code">
             {copied ? <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-400" /> : <Copy className="h-4 w-4 mr-1" />}
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? 'Copied' : 'Code'}
+          </Button>
+          <Button onClick={handleCopyLink} variant="secondary" className="h-[42px] shrink-0" title="Copy referral link">
+            {copiedLink ? <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-400" /> : <Link2 className="h-4 w-4 mr-1" />}
+            {copiedLink ? 'Copied!' : 'Link'}
           </Button>
         </div>
 

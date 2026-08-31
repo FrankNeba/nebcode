@@ -43,6 +43,13 @@ export default function RegisterPage() {
 
   useEffect(() => { logout(); }, [logout]);
 
+  // Pre-fill referral code from ?ref= URL param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setForm(f => ({ ...f, referral_code: ref.toUpperCase() }));
+  }, []);
+
   // ── Step 0 → 1 (Yes, I own the handbook) ──────────────────────────────────
   const handleOwnsBook = () => setStep(1);
 
