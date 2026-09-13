@@ -94,3 +94,33 @@ export const mysqlLabService = {
   resetSession: () => api.post('/mysql_lab/reset/'),
   status: () => api.get('/mysql_lab/status/'),
 };
+
+export const ambassadorService = {
+  getCurrentApplicationPeriod: () => api.get('/ambassadors/application-periods/current/'),
+  submitApplication: (data: {
+    full_name: string;
+    school: string;
+    phone_number: string;
+    whatsapp_contact: string;
+    current_level: string;
+    reason: string;
+  }) => api.post('/ambassadors/applications/', data),
+  getMyApplication: () => api.get('/ambassadors/applications/me/'),
+  getMyAmbassadorProfile: () => api.get('/ambassadors/me/'),
+
+  // Admin
+  getAdminApplicationPeriods: () => api.get('/admin/ambassadors/application-periods/'),
+  createAdminApplicationPeriod: (data: any) => api.post('/admin/ambassadors/application-periods/', data),
+  updateAdminApplicationPeriod: (id: number | string, data: any) =>
+    api.patch(`/admin/ambassadors/application-periods/${id}/`, data),
+  getAdminApplications: (params?: { status?: string; year?: number | string; search?: string }) =>
+    api.get('/admin/ambassadors/applications/', { params }),
+  getAdminApplicationDetail: (id: number | string) => api.get(`/admin/ambassadors/applications/${id}/`),
+  approveAdminApplication: (id: number | string) => api.post(`/admin/ambassadors/applications/${id}/approve/`),
+  rejectAdminApplication: (id: number | string) => api.post(`/admin/ambassadors/applications/${id}/reject/`),
+  scheduleInterviewAdminApplication: (id: number | string, data: { meet_link: string; interview_time: string; notes?: string }) =>
+    api.post(`/admin/ambassadors/applications/${id}/schedule-interview/`, data),
+  getAdminAmbassadors: () => api.get('/admin/ambassadors/'),
+  getAdminAmbassadorDetail: (id: number | string) => api.get(`/admin/ambassadors/${id}/`),
+};
+

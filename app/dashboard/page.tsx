@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock } from 'lucide-react';
+import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock, Sparkles, GraduationCap } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
-import { progressService, paymentService, courseService } from '@/services';
+import { progressService, paymentService, courseService, ambassadorService } from '@/services';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [courseProgressMap, setCourseProgressMap] = useState<Record<string, { completed: number; total: number }>>({});
   const [loading, setLoading] = useState(true);
+  const [hasAppliedAmbassador, setHasAppliedAmbassador] = useState<boolean>(false);
 
   const isSubscribed = user?.is_subscribed || user?.is_staff;
   const currentMonthPrefix = new Date().toISOString().slice(0, 7);
@@ -35,6 +36,19 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
+        // Fetch ambassador application status
+        ambassadorService.getMyAmbassadorProfile()
+          .then((res) => {
+            if (res.data) setHasAppliedAmbassador(true);
+          })
+          .catch(() => {
+            ambassadorService.getMyApplication()
+              .then((res) => {
+                if (res.data) setHasAppliedAmbassador(true);
+              })
+              .catch(() => setHasAppliedAmbassador(false));
+          });
+
         // Fetch all courses and purchases in parallel
         const [{ data: purchasesData }, { data: allCoursesData }, { data: progressData }] = await Promise.all([
           paymentService.getMyPurchases(),
@@ -95,9 +109,20 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 pb-32 md:pb-10">
-      <div className="mb-8">
-        <h1 className="font-bold text-2xl text-white">Hey, {user?.full_name?.split(' ')[0] || 'learner'} 👋</h1>
-        <p className="text-gray-500 text-sm mt-1">Keep up the momentum!</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="font-bold text-2xl text-white flex items-center gap-2">
+            Hey, {user?.full_name?.split(' ')[0] || 'learner'} <Sparkles className="h-5 w-5 text-amber-400" />
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Keep up the momentum!</p>
+        </div>
+        <Link
+          href={hasAppliedAmbassador ? '/ambassador' : '/ambassador/apply'}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-800/40 bg-gradient-to-r from-red-950/60 to-red-900/40 hover:from-red-900/60 hover:to-red-800/50 text-red-200 text-xs font-bold transition-all shadow-lg active:scale-95 shrink-0 self-start sm:self-auto"
+        >
+          <GraduationCap className="h-4 w-4 text-red-400" />
+          {hasAppliedAmbassador ? 'Ambassador' : 'Become an Ambassador'}
+        </Link>
       </div>
 
       {/* Admin Quick Link */}

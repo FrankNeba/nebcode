@@ -35,7 +35,8 @@ import {
   ChevronDown,
   DollarSign,
   Key,
-  GripVertical
+  GripVertical,
+  GraduationCap
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/auth.store';
@@ -751,6 +752,12 @@ export default function CourseAdminPage() {
           >
             <Key className="h-3.5 w-3.5" /> Access Codes
           </button>
+          <a
+            href="/admin/ambassadors/applications"
+            className="px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 text-red-400 hover:text-white hover:bg-red-900/30 border border-red-900/40 ml-1"
+          >
+            <GraduationCap className="h-3.5 w-3.5" /> Ambassadors
+          </a>
         </div>
       </div>
 
@@ -1385,7 +1392,7 @@ export default function CourseAdminPage() {
                                       : 'text-gray-400 hover:text-white hover:bg-dark-950/40 border border-transparent'
                                   }`}
                                 >
-                                  📁 {les.title}
+                                  <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 shrink-0" /> {les.title}</span>
                                 </button>
                               ))}
                             </div>

@@ -77,7 +77,7 @@ export const useMySQLLabStore = create<MySQLLabState>((set, get) => ({
       set({ connected: false, connecting: false, ws: null });
       if (event.code === 4003) {
         toast.error(
-          '🚫 Unauthorized Device — You are trying to use the MySQL Lab from an unauthorized device. Please switch to your registered device or contact support.',
+          'Unauthorized Device — You are trying to use the MySQL Lab from an unauthorized device. Please switch to your registered device or contact support.',
           { duration: 6000 }
         );
       } else if (event.code === 4002) {

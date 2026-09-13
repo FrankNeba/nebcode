@@ -12,7 +12,7 @@ import 'katex/dist/katex.min.css';
 import { courseService, progressService, executionService } from '@/services';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, Code2, Database, ArrowLeft, ArrowRight, Terminal as TerminalIcon, Play, Info } from 'lucide-react';
+import { CheckCircle, Code2, Database, ArrowLeft, ArrowRight, Terminal as TerminalIcon, Play, Info, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { MySQLEmbeddedTerminal } from '@/components/courses/MySQLEmbeddedTerminal';
@@ -72,11 +72,11 @@ export default function LessonPage() {
     try {
       await progressService.markComplete(lessonId);
       setCompleted(true);
-      toast.success('Lesson completed! 🎉');
+      toast.success('Lesson completed!');
       if (nextLesson) {
         setTimeout(() => router.push(`/courses/${courseId}/lesson/${nextLesson.id}`), 1000);
       } else {
-        toast('All lessons done! Check if you can take the final exam.', { icon: '🏆' });
+        toast('All lessons done! Check if you can take the final exam.');
         setTimeout(() => router.push(`/courses/${courseId}`), 1500);
       }
     } catch { toast.error('Failed to mark complete'); }
@@ -96,13 +96,13 @@ export default function LessonPage() {
       const match = /language-(\w+)/.exec(className || '');
       const lang = match ? match[1] : '';
       if (!inline && lang) {
-        // const codeString = String(children).replace(/\\n$/, '');
+        // const codeString = String(children).replace(/\n$/, '');
         const codeString = " "
         return (
           <div className="my-5 rounded-xl border border-dark-800 bg-[#06060c] overflow-hidden shadow-2xl">
             <div className="px-4 py-2 bg-dark-900 border-b border-dark-800 flex items-center justify-between">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-neb-400 font-mono">
-                {lang === 'sql' ? '⚡ SQL COMMAND' : `${lang.toUpperCase()} CODE`}
+              <span className="text-[10px] uppercase font-bold tracking-widest text-neb-400 font-mono flex items-center gap-1">
+                {lang === 'sql' ? <><Zap className="h-3 w-3 text-amber-400" /> SQL COMMAND</> : `${lang.toUpperCase()} CODE`}
               </span>
               <div className="flex gap-2">
                 <button

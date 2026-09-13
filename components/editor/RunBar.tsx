@@ -66,7 +66,7 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
       setIsRunning(false);
       if (event.code === 4003) {
         toast.error(
-          '🚫 Unauthorized Device — You are using an unauthorized device to run code. Please use your registered device or contact support.',
+          'Unauthorized Device — You are using an unauthorized device to run code. Please use your registered device or contact support.',
           { duration: 6000 }
         );
       } else if (event.code === 4002) {

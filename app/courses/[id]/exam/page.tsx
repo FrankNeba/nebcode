@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { courseService } from '@/services';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, XCircle, Trophy, Download, ArrowLeft } from 'lucide-react';
+import { CheckCircle, XCircle, Trophy, Download, ArrowLeft, ArrowRight, Pin, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -102,10 +102,10 @@ export default function ExamPage() {
               This exam has <strong className="text-white">{questions.length} questions</strong>.
               You need at least <strong className="text-neb-400">{exam.pass_percentage}%</strong> to pass and earn your certificate.
             </p>
-            <div className="bg-dark-800 border border-dark-700 rounded-xl p-4 text-sm text-gray-500 mb-8 text-left space-y-2">
-              <p>📌 Read each question carefully before answering.</p>
-              <p>📌 You must answer all questions before submitting.</p>
-              <p>📌 You can retake the exam if you don't pass.</p>
+            <div className="bg-dark-800 border border-dark-700 rounded-xl p-4 text-sm text-gray-400 mb-8 text-left space-y-2">
+              <p className="flex items-center gap-2"><Pin className="h-4 w-4 text-neb-400 shrink-0" /> Read each question carefully before answering.</p>
+              <p className="flex items-center gap-2"><Pin className="h-4 w-4 text-neb-400 shrink-0" /> You must answer all questions before submitting.</p>
+              <p className="flex items-center gap-2"><Pin className="h-4 w-4 text-neb-400 shrink-0" /> You can retake the exam if you don't pass.</p>
             </div>
             <Button onClick={startExam} className="w-full text-lg py-4">Start Exam</Button>
           </div>
@@ -159,7 +159,7 @@ export default function ExamPage() {
                 </Button>
                 {current < questions.length - 1 ? (
                   <Button onClick={() => setCurrent(c => c + 1)} disabled={selected[current] === null} size="sm">
-                    Next →
+                    Next <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 ) : (
                   <Button onClick={handleSubmit} isLoading={submitting} className="gap-2">
@@ -177,7 +177,7 @@ export default function ExamPage() {
             {result.passed ? (
               <>
                 <Trophy className="h-20 w-20 text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(250,204,21,0.4)]" />
-                <h2 className="text-3xl font-bold text-white mb-2">Congratulations! 🎉</h2>
+                <h2 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-2">Congratulations! <Sparkles className="h-7 w-7 text-yellow-400" /></h2>
                 <p className="text-gray-400 mb-2">You scored <strong className="text-green-400 text-xl">{result.score.toFixed(1)}%</strong></p>
                 <p className="text-gray-500 text-sm mb-8">You've passed the exam and earned your certificate!</p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">

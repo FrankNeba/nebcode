@@ -1,12 +1,14 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Eye, EyeOff, BookOpen, ArrowRight, X, ChevronLeft, Sparkles, KeyRound } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, BookOpen, ArrowRight, X, ChevronLeft, Sparkles, KeyRound, AlertTriangle, Check } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { authService, paymentService } from '@/services';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Spinner } from '@/components/ui/Spinner';
 import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
 import Cookies from 'js-cookie';
 
@@ -17,7 +19,9 @@ import Cookies from 'js-cookie';
 
 type Step = 0 | 1 | 2;
 
-export default function RegisterPage() {
+function RegisterFormContent() {
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const { logout, fetchUser } = useAuthStore();
   const [step, setStep] = useState<Step>(0);
 
@@ -43,12 +47,23 @@ export default function RegisterPage() {
 
   useEffect(() => { logout(); }, [logout]);
 
+  useEffect(() => {
+    if (redirectParam && redirectParam.startsWith('/')) {
+      localStorage.setItem('auth_redirect', redirectParam);
+    }
+  }, [redirectParam]);
+
+  const getRedirectTarget = () => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
+    const target = redirectParam || saved || '/dashboard';
+    return target.startsWith('/') ? target : '/dashboard';
+  };
+
   // Pre-fill referral code from ?ref= URL param
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
+    const ref = searchParams.get('ref');
     if (ref) setForm(f => ({ ...f, referral_code: ref.toUpperCase() }));
-  }, []);
+  }, [searchParams]);
 
   // ── Step 0 → 1 (Yes, I own the handbook) ──────────────────────────────────
   const handleOwnsBook = () => setStep(1);
@@ -128,7 +143,7 @@ export default function RegisterPage() {
       // New Google user with a book code: redeem it immediately
       try {
         await paymentService.redeemAccessCode(codeToRedeem);
-        toast.success('🎉 Premium access activated via your handbook code!');
+        toast.success('Premium access activated via your handbook code!');
       } catch (err: any) {
         toast.error(err?.response?.data?.detail || 'Code could not be applied. You can redeem it from your dashboard.');
       }
@@ -138,7 +153,9 @@ export default function RegisterPage() {
       // Show referral code prompt (GoogleReferralModal equivalent inline)
       setGoogleNewUser(true);
     } else {
-      window.location.href = '/dashboard';
+      const target = getRedirectTarget();
+      if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
+      window.location.href = target;
     }
   };
 
@@ -147,8 +164,10 @@ export default function RegisterPage() {
   const [refLoading, setRefLoading] = useState(false);
 
   const handleApplyReferral = async () => {
+    const target = getRedirectTarget();
+    if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
     if (!refCode.trim()) {
-      window.location.href = '/dashboard';
+      window.location.href = target;
       return;
     }
     setRefLoading(true);
@@ -159,7 +178,7 @@ export default function RegisterPage() {
       toast.error(err?.response?.data?.detail || 'Invalid referral code.');
     } finally {
       setRefLoading(false);
-      window.location.href = '/dashboard';
+      window.location.href = target;
     }
   };
 
@@ -172,7 +191,7 @@ export default function RegisterPage() {
             <Sparkles className="h-6 w-6 text-neb-400" />
           </div>
           <h3 className="text-xl font-bold text-white mb-2">
-            {pendingCodeRef.current ? '🎉 Welcome, Premium Member!' : 'Welcome to Nebcode!'}
+            {pendingCodeRef.current ? 'Welcome, Premium Member!' : 'Welcome to Nebcode!'}
           </h3>
           <p className="text-gray-400 text-sm mb-6">
             {pendingCodeRef.current
@@ -190,7 +209,11 @@ export default function RegisterPage() {
           <div className="flex gap-3">
             <Button
               variant="secondary"
-              onClick={() => { window.location.href = '/dashboard'; }}
+              onClick={() => {
+                const target = getRedirectTarget();
+                if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
+                window.location.href = target;
+              }}
               className="flex-1 py-3"
               disabled={refLoading}
             >
@@ -209,6 +232,11 @@ export default function RegisterPage() {
     );
   }
 
+  const redirectTarget = getRedirectTarget();
+  const loginHref = redirectTarget !== '/dashboard'
+    ? `/auth/login?redirect=${encodeURIComponent(redirectTarget)}`
+    : '/auth/login';
+
   // ── Render: Done (verification email sent) ───────────────────────────────
   if (done) return (
     <div className="min-h-[calc(100vh-56px)] flex items-center justify-center px-4 bg-dark-950">
@@ -221,22 +249,22 @@ export default function RegisterPage() {
           We've sent a verification link to <br />
           <strong className="text-neb-400">{form.email}</strong>.
           {form.access_code && (
-            <span className="block mt-2 text-emerald-400 font-semibold text-xs">
-              ✓ Premium access will be activated once you verify your email.
+            <span className="block mt-2 text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1">
+              <Check className="h-3.5 w-3.5" /> Premium access will be activated once you verify your email.
             </span>
           )}
         </p>
 
         {/* Spam notice — prominent callout */}
         <div className="flex items-start gap-3 bg-amber-950/40 border border-amber-600/40 rounded-xl px-4 py-3 text-left mb-6">
-          <span className="text-amber-400 text-lg shrink-0 mt-0.5">⚠️</span>
+          <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-amber-300 text-xs leading-relaxed">
             <span className="font-bold block mb-0.5">Don't see it?</span>
             Please check your <span className="font-bold">spam</span> or <span className="font-bold">junk</span> folder — our verification emails sometimes end up there. Mark it as "Not Spam" to ensure future emails reach your inbox.
           </p>
         </div>
 
-        <Link href="/auth/login" className="block">
+        <Link href={loginHref} className="block">
           <Button variant="secondary" className="w-full py-6">Return to Sign In</Button>
         </Link>
       </div>
@@ -500,7 +528,7 @@ export default function RegisterPage() {
                 )}
                 <p className="text-sm text-gray-500">
                   Have an account?{' '}
-                  <Link href="/auth/login" className="text-neb-400 hover:text-neb-300 font-medium transition-colors">Sign in</Link>
+                  <Link href={loginHref} className="text-neb-400 hover:text-neb-300 font-medium transition-colors">Sign in</Link>
                 </p>
               </div>
             </div>
@@ -508,5 +536,17 @@ export default function RegisterPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">
+        <Spinner className="h-8 w-8 text-neb-500" />
+      </div>
+    }>
+      <RegisterFormContent />
+    </Suspense>
   );
 }

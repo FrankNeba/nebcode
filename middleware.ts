@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Paths that require authentication
-  const protectedPaths = ['/mysql-lab', '/editor', '/courses', '/dashboard'];
+  const protectedPaths = ['/mysql-lab', '/editor', '/courses', '/dashboard', '/admin'];
 
   // Check if the current path starts with any of the protected paths
   const isProtected = protectedPaths.some(path => 
@@ -28,5 +28,7 @@ export const config = {
     '/editor', '/editor/:path*',
     '/courses', '/courses/:path*',
     '/dashboard', '/dashboard/:path*',
+    '/admin', '/admin/:path*',
   ],
 };
+

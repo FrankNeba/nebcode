@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { Mail } from 'lucide-react';
+import { Mail, AlertTriangle } from 'lucide-react';
 import { authService } from '@/services';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
 
         {/* Spam notice */}
         <div className="flex items-start gap-3 bg-amber-950/40 border border-amber-600/40 rounded-xl px-4 py-3 text-left mb-6">
-          <span className="text-amber-400 text-lg shrink-0 mt-0.5">⚠️</span>
+          <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <p className="text-amber-300 text-xs leading-relaxed">
             <span className="font-bold block mb-0.5">Don't see it?</span>
             Check your <span className="font-bold">spam</span> or <span className="font-bold">junk</span> folder — reset emails sometimes land there.

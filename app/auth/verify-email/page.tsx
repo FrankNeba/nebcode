@@ -52,9 +52,13 @@ function VerifyEmailContent() {
         setStatus('success');
         setMsg('Your email has been verified! Signing you in…');
 
+        const savedRedirect = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
+        const redirectTarget = params.get('redirect') || savedRedirect || '/dashboard';
+        if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
+
         // Brief pause so the user can see the success message, then redirect
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(redirectTarget.startsWith('/') ? redirectTarget : '/dashboard');
         }, 1800);
       })
       .catch((err) => {

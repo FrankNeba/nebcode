@@ -1,17 +1,20 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Spinner } from '@/components/ui/Spinner';
 import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
 import GoogleReferralModal from '@/components/auth/GoogleReferralModal';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const { login, logout, isLoading } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '' });
   const [otp, setOtp] = useState('');
@@ -21,7 +24,16 @@ export default function LoginPage() {
 
   useEffect(() => {
     logout();
-  }, [logout]);
+    if (redirectParam && redirectParam.startsWith('/')) {
+      localStorage.setItem('auth_redirect', redirectParam);
+    }
+  }, [logout, redirectParam]);
+
+  const getRedirectTarget = () => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
+    const target = redirectParam || saved || '/dashboard';
+    return target.startsWith('/') ? target : '/dashboard';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +43,10 @@ export default function LoginPage() {
         setOtpRequired(true);
         toast.success('An OTP has been sent to your email to verify this device.');
       } else {
+        const target = getRedirectTarget();
+        if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
         toast.success('Welcome back!');
-        router.push('/dashboard');
+        router.push(target);
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || 'Invalid credentials or OTP.');
@@ -42,6 +56,11 @@ export default function LoginPage() {
   if (showGoogleRefModal) {
     return <GoogleReferralModal onClose={() => setShowGoogleRefModal(false)} />;
   }
+
+  const redirectTarget = getRedirectTarget();
+  const registerHref = redirectTarget !== '/dashboard'
+    ? `/auth/register?redirect=${encodeURIComponent(redirectTarget)}`
+    : '/auth/register';
 
   return (
     <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center px-4 py-12 bg-dark-950">
@@ -113,20 +132,34 @@ export default function LoginPage() {
               </div>
 
               <GoogleLoginButton onSuccess={(isNew) => {
+                const target = getRedirectTarget();
                 if (isNew) {
                   setShowGoogleRefModal(true);
                 } else {
-                  router.push('/dashboard');
+                  if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
+                  router.push(target);
                 }
               }} />
             </>
           )}
 
           <p className="text-center text-sm text-gray-500 mt-8">
-            No account? <Link href="/auth/register" className="text-neb-400 hover:text-neb-300 font-medium transition-colors">Create one free</Link>
+            No account? <Link href={registerHref} className="text-neb-400 hover:text-neb-300 font-medium transition-colors">Create one free</Link>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">
+        <Spinner className="h-8 w-8 text-neb-500" />
+      </div>
+    }>
+      <LoginFormContent />
+    </Suspense>
   );
 }

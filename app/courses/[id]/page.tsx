@@ -6,7 +6,7 @@ import { courseService, progressService } from '@/services';
 import { useAuthStore } from '@/store/auth.store';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { BookOpen, ChevronDown, ChevronRight, CheckCircle, Lock, Play, Zap } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, CheckCircle, Lock, Play, Zap, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -78,7 +78,7 @@ export default function CourseDetailPage() {
             </div>
           ) : allDone && course.exam ? (
             <Link href={`/courses/${id}/exam`}>
-              <Button className="w-full mt-4" variant="secondary">Take Final Exam 🎓</Button>
+              <Button className="w-full mt-4 flex items-center justify-center gap-2" variant="secondary">Take Final Exam <GraduationCap className="h-4 w-4" /></Button>
             </Link>
           ) : null}
         </div>

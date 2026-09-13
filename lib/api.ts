@@ -55,7 +55,11 @@ api.interceptors.response.use(
 function handleLogout() {
   Cookies.remove('access_token');
   Cookies.remove('refresh_token');
-  if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
+  if (
+    typeof window !== 'undefined' &&
+    !window.location.pathname.includes('/auth/login') &&
+    !window.location.pathname.includes('/ambassador')
+  ) {
     window.location.href = '/auth/login';
   }
 }
