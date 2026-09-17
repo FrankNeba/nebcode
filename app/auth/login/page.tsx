@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
+import { authService } from '@/services';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -21,6 +22,8 @@ function LoginFormContent() {
   const [otpRequired, setOtpRequired] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showGoogleRefModal, setShowGoogleRefModal] = useState(false);
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     logout();
@@ -35,8 +38,25 @@ function LoginFormContent() {
     return target.startsWith('/') ? target : '/dashboard';
   };
 
+  const handleResendVerification = async () => {
+    if (!form.email) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+    setIsResending(true);
+    try {
+      await authService.resendVerification(form.email);
+      toast.success('Verification email sent! Check your inbox.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to resend verification link.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUnverified(false);
     try {
       const result = await login(form.email, form.password, otpRequired ? otp : undefined);
       if (result?.otp_required) {
@@ -49,6 +69,9 @@ function LoginFormContent() {
         router.push(target);
       }
     } catch (err: any) {
+      if (err?.response?.status === 403 && err?.response?.data?.is_verified === false) {
+        setIsUnverified(true);
+      }
       toast.error(err?.response?.data?.detail || 'Invalid credentials or OTP.');
     }
   };
@@ -71,6 +94,19 @@ function LoginFormContent() {
         </div>
         <div className="card p-8 shadow-2xl border-dark-700 backdrop-blur-sm bg-dark-900/50 animate-in fade-in zoom-in-95 duration-1000 delay-200">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {isUnverified && (
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs flex flex-col gap-2 animate-in fade-in duration-300">
+                <span>Your email address has not been verified yet. Please check your inbox for the activation link before signing in.</span>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                  className="text-left font-semibold text-amber-400 hover:text-amber-200 underline transition-colors w-fit disabled:opacity-50"
+                >
+                  {isResending ? 'Sending verification email…' : 'Didn’t receive an email? Resend verification link'}
+                </button>
+              </div>
+            )}
             {!otpRequired ? (
               <>
                 <Input label="Email" type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />

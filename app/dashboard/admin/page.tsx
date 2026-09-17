@@ -751,61 +751,63 @@ export default function CourseAdminPage() {
         </div>
 
         {/* Tab Controls */}
-        <div className="flex bg-dark-950 border border-dark-850 p-1.5 rounded-xl shrink-0">
-          <button
-            onClick={() => setActiveTab('courses')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-              activeTab === 'courses' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <BookOpen className="h-3.5 w-3.5" /> Courses
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-              activeTab === 'users' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Users className="h-3.5 w-3.5" /> Users CRUD
-          </button>
-          <button
-            onClick={() => setActiveTab('uploader')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-              activeTab === 'uploader' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Settings className="h-3.5 w-3.5" /> JSON Import
-          </button>
-          <button
-            onClick={() => setActiveTab('content')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-              activeTab === 'content' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <FolderOpen className="h-3.5 w-3.5" /> Content Editor
-          </button>
-          <button
-            onClick={() => setActiveTab('referrals')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-              activeTab === 'referrals' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <DollarSign className="h-3.5 w-3.5" /> Referrals
-          </button>
-          <button
-            onClick={() => setActiveTab('access-codes')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-              activeTab === 'access-codes' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Key className="h-3.5 w-3.5" /> Access Codes
-          </button>
-          <a
-            href="/admin/ambassadors/applications"
-            className="px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 text-red-400 hover:text-white hover:bg-red-900/30 border border-red-900/40 ml-1"
-          >
-            <GraduationCap className="h-3.5 w-3.5" /> Ambassadors
-          </a>
+        <div className="w-full lg:w-auto overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-1.5 bg-dark-950 border border-dark-850 p-1.5 rounded-xl w-max">
+            <button
+              onClick={() => setActiveTab('courses')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                activeTab === 'courses' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <BookOpen className="h-3.5 w-3.5" /> Courses
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                activeTab === 'users' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" /> Users CRUD
+            </button>
+            <button
+              onClick={() => setActiveTab('uploader')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                activeTab === 'uploader' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Settings className="h-3.5 w-3.5" /> JSON Import
+            </button>
+            <button
+              onClick={() => setActiveTab('content')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                activeTab === 'content' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <FolderOpen className="h-3.5 w-3.5" /> Content Editor
+            </button>
+            <button
+              onClick={() => setActiveTab('referrals')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                activeTab === 'referrals' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <DollarSign className="h-3.5 w-3.5" /> Referrals
+            </button>
+            <button
+              onClick={() => setActiveTab('access-codes')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                activeTab === 'access-codes' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Key className="h-3.5 w-3.5" /> Access Codes
+            </button>
+            <a
+              href="/admin/ambassadors/applications"
+              className="px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 text-red-400 hover:text-white hover:bg-red-900/30 border border-red-900/40 ml-1"
+            >
+              <GraduationCap className="h-3.5 w-3.5" /> Ambassadors
+            </a>
+          </div>
         </div>
       </div>
 
@@ -2247,11 +2249,11 @@ export default function CourseAdminPage() {
             </div>
 
             {/* Sub-header Tabs */}
-            <div className="flex items-center gap-2 px-6 pt-3 bg-dark-950 border-b border-dark-850">
+            <div className="flex items-center gap-2 px-6 pt-3 bg-dark-950 border-b border-dark-850 overflow-x-auto scrollbar-none">
               <button
                 onClick={() => setActivityTab('courses')}
                 className={cn(
-                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition",
+                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition whitespace-nowrap shrink-0",
                   activityTab === 'courses' ? "border-neb-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
                 )}
               >
@@ -2267,7 +2269,7 @@ export default function CourseAdminPage() {
               <button
                 onClick={() => setActivityTab('c_editor')}
                 className={cn(
-                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition",
+                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition whitespace-nowrap shrink-0",
                   activityTab === 'c_editor' ? "border-neb-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
                 )}
               >
@@ -2281,7 +2283,7 @@ export default function CourseAdminPage() {
               <button
                 onClick={() => setActivityTab('mysql')}
                 className={cn(
-                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition",
+                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition whitespace-nowrap shrink-0",
                   activityTab === 'mysql' ? "border-neb-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
                 )}
               >
