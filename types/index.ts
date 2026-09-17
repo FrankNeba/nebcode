@@ -13,10 +13,11 @@ export interface FileNode {
   children: FileNode[]; created_at: string; updated_at: string;
 }
 export interface Course {
-  id: string; title: string; description: string;
+  id: string; slug?: string; title: string; description: string;
   thumbnail?: string; price: number; is_free: boolean; category: 'mysql' | 'programming' | 'others';
   module_count?: number; modules?: Module[]; locked?: boolean;
 }
+
 export interface Module {
   id: string; title: string; order: number; lessons: LessonSummary[];
 }
@@ -46,3 +47,75 @@ export interface ExecutionResult {
 export interface Subscription {
   id: string; status: string; amount: number; expires_at?: string; created_at: string;
 }
+
+export interface UserActivitySummary {
+  enrolled_courses_count: number;
+  completed_courses_count: number;
+  overall_progress_percent: number;
+  c_editor: {
+    is_active: boolean;
+    last_active: string | null;
+    files_count: number;
+    has_used: boolean;
+  };
+  mysql_lab: {
+    is_active: boolean;
+    is_running: boolean;
+    last_active: string | null;
+    has_used: boolean;
+  };
+}
+
+export interface UserCourseProgressDetail {
+  id: string;
+  slug?: string;
+  title: string;
+  category: string;
+  is_free: boolean;
+  price: number;
+  is_enrolled: boolean;
+  enrollment_type: 'subscription' | 'purchased' | 'free' | 'started' | 'none';
+  total_lessons: number;
+  completed_lessons_count: number;
+  percent: number;
+  is_completed: boolean;
+  last_activity: string | null;
+  has_certificate: boolean;
+  certificate_number: string | null;
+  certificate_date: string | null;
+}
+
+export interface UserLearningActivity {
+  user: {
+    id: string;
+    email: string;
+    full_name: string;
+    registration_number: number | null;
+    is_subscribed: boolean;
+    subscription_expires_at: string | null;
+    created_at: string;
+  };
+  courses: UserCourseProgressDetail[];
+  c_editor: {
+    is_active: boolean;
+    last_active: string | null;
+    files_count: number;
+    files: Array<{
+      id: string;
+      name: string;
+      language: string;
+      size_chars: number;
+      updated_at: string;
+    }>;
+    has_used: boolean;
+  };
+  mysql_lab: {
+    is_active: boolean;
+    is_running: boolean;
+    last_active: string | null;
+    container_name: string | null;
+    database_name: string;
+    has_used: boolean;
+  };
+}
+

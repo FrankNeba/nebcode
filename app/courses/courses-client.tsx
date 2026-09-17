@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 interface Course {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   thumbnail: string | null;
@@ -16,6 +17,7 @@ interface Course {
   category: 'mysql' | 'programming' | 'others';
   module_count: number;
 }
+
 
 const CATEGORIES = [
   { id: 'all', name: 'All Courses' },
@@ -84,7 +86,8 @@ export default function CoursesPageClient() {
           {courses.map((course) => {
             const owned = course.is_free || purchases.includes(course.id);
             return (
-              <Link key={course.id} href={`/courses/${course.id}`}>
+              <Link key={course.id} href={`/courses/${course.slug || course.id}`}>
+
                 <div className={cn(
                   "group relative bg-dark-900/40 backdrop-blur-sm border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-neb-900/10 cursor-pointer h-full flex flex-col",
                   owned ? "border-dark-800 hover:border-neb-800/40" : "border-dark-800 hover:border-dark-700"

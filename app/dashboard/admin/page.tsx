@@ -36,9 +36,15 @@ import {
   DollarSign,
   Key,
   GripVertical,
-  GraduationCap
+  GraduationCap,
+  Activity,
+  Terminal,
+  ExternalLink
 } from 'lucide-react';
+
 import toast from 'react-hot-toast';
+import { cn } from '@/lib/utils';
+
 import { useAuthStore } from '@/store/auth.store';
 import { courseService, authService, paymentService } from '@/services';
 import { Button } from '@/components/ui/Button';
@@ -121,6 +127,14 @@ export default function CourseAdminPage() {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState('');
+  const [userFilter, setUserFilter] = useState<'all' | 'enrolled' | 'c_active' | 'mysql_active' | 'subscribed'>('all');
+
+  // User Learning Activity Modal State
+  const [activityModalUser, setActivityModalUser] = useState<any>(null);
+  const [userActivityData, setUserActivityData] = useState<any>(null);
+  const [userActivityLoading, setUserActivityLoading] = useState(false);
+  const [activityTab, setActivityTab] = useState<'courses' | 'c_editor' | 'mysql'>('courses');
+
 
   // Course Form State
   const [courseForm, setCourseForm] = useState({
@@ -675,10 +689,44 @@ export default function CourseAdminPage() {
     }
   };
 
-  const filteredUsers = usersList.filter(u =>
-    u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
-    (u.full_name && u.full_name.toLowerCase().includes(userSearch.toLowerCase()))
-  );
+  const handleOpenUserActivity = async (u: any) => {
+    setActivityModalUser(u);
+    setUserActivityLoading(true);
+    setUserActivityData(null);
+    setActivityTab('courses');
+    try {
+      const res = await authService.getUserLearningActivity(u.id);
+      setUserActivityData(res.data);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || 'Failed to load user activity data');
+    } finally {
+      setUserActivityLoading(false);
+    }
+  };
+
+  const filteredUsers = usersList.filter(u => {
+    const matchesSearch =
+      u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+      (u.full_name && u.full_name.toLowerCase().includes(userSearch.toLowerCase())) ||
+      (u.registration_number && String(u.registration_number).includes(userSearch));
+
+    if (!matchesSearch) return false;
+
+    if (userFilter === 'enrolled') {
+      return (u.activity_summary?.enrolled_courses_count || 0) > 0;
+    }
+    if (userFilter === 'c_active') {
+      return u.activity_summary?.c_editor?.is_active || u.activity_summary?.c_editor?.has_used;
+    }
+    if (userFilter === 'mysql_active') {
+      return u.activity_summary?.mysql_lab?.is_active || u.activity_summary?.mysql_lab?.is_running || u.activity_summary?.mysql_lab?.has_used;
+    }
+    if (userFilter === 'subscribed') {
+      return u.is_subscribed;
+    }
+    return true;
+  });
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 pb-24">
@@ -903,21 +951,67 @@ export default function CourseAdminPage() {
               </Button>
             </div>
 
-            {/* User Search & Info Bar */}
-            <div className="flex items-center gap-3 bg-dark-900/40 border border-dark-800 p-4 rounded-xl">
+            {/* User Search & Filter Bar */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-dark-900/40 border border-dark-800 p-4 rounded-xl">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Search by full name or email address..."
+                  placeholder="Search by full name, email, or registration number..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 text-xs bg-dark-950 border border-dark-800 rounded-lg outline-none text-white focus:border-neb-500 transition"
                 />
               </div>
-              <span className="text-[10px] text-gray-450 ml-auto font-mono">
-                Showing {filteredUsers.length} of {usersList.length} users
-              </span>
+
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  onClick={() => setUserFilter('all')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition",
+                    userFilter === 'all' ? "bg-neb-600 text-white" : "bg-dark-950 text-gray-400 hover:text-white border border-dark-800"
+                  )}
+                >
+                  All Users ({usersList.length})
+                </button>
+                <button
+                  onClick={() => setUserFilter('enrolled')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition",
+                    userFilter === 'enrolled' ? "bg-neb-600 text-white" : "bg-dark-950 text-gray-400 hover:text-white border border-dark-800"
+                  )}
+                >
+                  Enrolled Courses
+                </button>
+                <button
+                  onClick={() => setUserFilter('c_active')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5",
+                    userFilter === 'c_active' ? "bg-neb-600 text-white" : "bg-dark-950 text-gray-400 hover:text-white border border-dark-800"
+                  )}
+                >
+                  <Code2 className="h-3 w-3" /> C Editor Users
+                </button>
+                <button
+                  onClick={() => setUserFilter('mysql_active')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5",
+                    userFilter === 'mysql_active' ? "bg-neb-600 text-white" : "bg-dark-950 text-gray-400 hover:text-white border border-dark-800"
+                  )}
+                >
+                  <Database className="h-3 w-3" /> MySQL Users
+                </button>
+                <button
+                  onClick={() => setUserFilter('subscribed')}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition",
+                    userFilter === 'subscribed' ? "bg-neb-600 text-white" : "bg-dark-950 text-gray-400 hover:text-white border border-dark-800"
+                  )}
+                >
+                  Subscribed
+                </button>
+              </div>
             </div>
 
             {usersLoading ? (
@@ -928,7 +1022,7 @@ export default function CourseAdminPage() {
               <div className="flex flex-col items-center justify-center text-center p-12 bg-dark-900/20 border border-dark-800 rounded-2xl">
                 <Users className="h-12 w-12 text-dark-700 mb-3" />
                 <h3 className="text-base font-bold text-white mb-1">No users matched</h3>
-                <p className="text-xs text-gray-400 max-w-sm">Try searching for a different name or email.</p>
+                <p className="text-xs text-gray-400 max-w-sm">Try searching for a different name, email, or adjusting filter.</p>
               </div>
             ) : (
               <div className="card bg-dark-900/20 border border-dark-800 overflow-hidden shadow-xl">
@@ -938,8 +1032,11 @@ export default function CourseAdminPage() {
                       <tr className="bg-dark-950/80 border-b border-dark-800 text-gray-400 font-bold uppercase tracking-wider">
                         <th className="p-4">Reg No</th>
                         <th className="p-4">Email / Name</th>
-                        <th className="p-4 text-center">Status Roles</th>
+                        <th className="p-4 text-center">Status</th>
                         <th className="p-4 text-center">Subscription</th>
+                        <th className="p-4 text-center">Courses & Progress</th>
+                        <th className="p-4 text-center">C Editor</th>
+                        <th className="p-4 text-center">MySQL Lab</th>
                         <th className="p-4 text-center">Actions</th>
                       </tr>
                     </thead>
@@ -1000,7 +1097,76 @@ export default function CourseAdminPage() {
                             )}
                           </td>
                           <td className="p-4 text-center">
+                            {u.activity_summary?.enrolled_courses_count ? (
+                              <div className="flex flex-col items-center">
+                                <span className="text-[10px] font-bold text-neb-400 bg-neb-950/60 border border-neb-800/40 px-2 py-0.5 rounded-full">
+                                  {u.activity_summary.enrolled_courses_count} {u.activity_summary.enrolled_courses_count === 1 ? 'course' : 'courses'}
+                                </span>
+                                <div className="w-20 h-1.5 bg-dark-800 rounded-full overflow-hidden mt-1.5">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-neb-600 to-neb-400 rounded-full"
+                                    style={{ width: `${Math.min(100, u.activity_summary.overall_progress_percent || 0)}%` }}
+                                  />
+                                </div>
+                                <span className="text-[9px] text-gray-400 font-mono mt-0.5">
+                                  {u.activity_summary.overall_progress_percent}% avg
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-gray-600">None enrolled</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            {u.activity_summary?.c_editor?.is_active ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-[10px] font-bold text-emerald-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Active Now
+                              </span>
+                            ) : u.activity_summary?.c_editor?.has_used ? (
+                              <div className="flex flex-col items-center">
+                                <span className="text-[10px] text-gray-300 font-medium">
+                                  {u.activity_summary.c_editor.files_count} files
+                                </span>
+                                {u.activity_summary.c_editor.last_active && (
+                                  <span className="text-[9px] text-gray-500 font-mono mt-0.5">
+                                    {new Date(u.activity_summary.c_editor.last_active).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-gray-600">Never used</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            {u.activity_summary?.mysql_lab?.is_running ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/50 text-[10px] font-bold text-cyan-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" /> Running
+                              </span>
+                            ) : u.activity_summary?.mysql_lab?.is_active ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-[10px] font-bold text-emerald-400">
+                                Active
+                              </span>
+                            ) : u.activity_summary?.mysql_lab?.has_used ? (
+                              <div className="flex flex-col items-center">
+                                <span className="text-[10px] text-gray-300 font-medium">Used previously</span>
+                                {u.activity_summary.mysql_lab.last_active && (
+                                  <span className="text-[9px] text-gray-500 font-mono mt-0.5">
+                                    {new Date(u.activity_summary.mysql_lab.last_active).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-gray-600">Never used</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => handleOpenUserActivity(u)}
+                                className="p-1.5 bg-neb-950/50 hover:bg-neb-900/60 border border-neb-800/50 text-neb-400 hover:text-white rounded-lg transition"
+                                title="View Learning & Tool Activity"
+                              >
+                                <Activity className="h-3.5 w-3.5" />
+                              </button>
                               <button
                                 onClick={() => handleOpenUserEdit(u)}
                                 className="p-1.5 bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-300 hover:text-white rounded-lg transition"
@@ -1027,6 +1193,7 @@ export default function CourseAdminPage() {
                     </tbody>
                   </table>
                 </div>
+
               </div>
             )}
           </div>
@@ -2042,7 +2209,327 @@ export default function CourseAdminPage() {
         </div>
       )}
 
+      {/* ── User Learning & Tool Activity Modal ── */}
+      {activityModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-dark-950 border border-dark-800 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 bg-dark-900 border-b border-dark-800 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-neb-950 border border-neb-800/60 flex items-center justify-center text-neb-400 font-extrabold text-sm">
+                  {activityModalUser.full_name?.[0] || activityModalUser.email?.[0] || 'U'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-white text-base">
+                      {activityModalUser.full_name || 'Anonymous Student'}
+                    </h3>
+                    {activityModalUser.registration_number && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-dark-800 border border-dark-700 text-gray-300">
+                        #{String(activityModalUser.registration_number).padStart(4, '0')}
+                      </span>
+                    )}
+                    {activityModalUser.is_subscribed && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-neb-950 border border-neb-800/60 text-neb-400">
+                        Premium Subscriber
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">{activityModalUser.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActivityModalUser(null)}
+                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-dark-800 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Sub-header Tabs */}
+            <div className="flex items-center gap-2 px-6 pt-3 bg-dark-950 border-b border-dark-850">
+              <button
+                onClick={() => setActivityTab('courses')}
+                className={cn(
+                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition",
+                  activityTab === 'courses' ? "border-neb-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
+                )}
+              >
+                <BookOpen className="h-4 w-4 text-neb-400" />
+                <span>Registered Courses & Progress</span>
+                {userActivityData?.courses && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-dark-850 text-gray-300">
+                    {userActivityData.courses.filter((c: any) => c.is_enrolled).length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActivityTab('c_editor')}
+                className={cn(
+                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition",
+                  activityTab === 'c_editor' ? "border-neb-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
+                )}
+              >
+                <Code2 className="h-4 w-4 text-neb-400" />
+                <span>C Editor Sandbox</span>
+                {userActivityData?.c_editor?.is_active && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                )}
+              </button>
+
+              <button
+                onClick={() => setActivityTab('mysql')}
+                className={cn(
+                  "pb-3 text-xs font-bold flex items-center gap-2 border-b-2 transition",
+                  activityTab === 'mysql' ? "border-neb-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
+                )}
+              >
+                <Database className="h-4 w-4 text-neb-400" />
+                <span>MySQL Database Lab</span>
+                {userActivityData?.mysql_lab?.is_running && (
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                )}
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {userActivityLoading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neb-500 mb-3" />
+                  <p className="text-xs text-gray-400">Loading student activity and progress...</p>
+                </div>
+              ) : !userActivityData ? (
+                <div className="text-center py-12 text-gray-500 text-xs">
+                  No activity details found for this user.
+                </div>
+              ) : (
+                <>
+                  {/* TAB 1: COURSES & PROGRESS */}
+                  {activityTab === 'courses' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Enrolled Courses</span>
+                          <p className="text-2xl font-extrabold text-white mt-1">
+                            {userActivityData.courses.filter((c: any) => c.is_enrolled).length}
+                          </p>
+                        </div>
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Completed Courses</span>
+                          <p className="text-2xl font-extrabold text-green-400 mt-1">
+                            {userActivityData.courses.filter((c: any) => c.is_completed).length}
+                          </p>
+                        </div>
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Certificates Earned</span>
+                          <p className="text-2xl font-extrabold text-neb-400 mt-1">
+                            {userActivityData.courses.filter((c: any) => c.has_certificate).length}
+                          </p>
+                        </div>
+                      </div>
+
+                      <h4 className="text-xs uppercase font-bold tracking-wider text-gray-400 pt-2">Course Breakdown</h4>
+                      <div className="space-y-3">
+                        {userActivityData.courses.map((c: any) => (
+                          <div
+                            key={c.id}
+                            className={cn(
+                              "p-4 rounded-xl border transition flex flex-col md:flex-row md:items-center justify-between gap-4",
+                              c.is_enrolled ? "bg-dark-900/40 border-dark-800" : "bg-dark-950/40 border-dark-900 opacity-60"
+                            )}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-dark-950 text-neb-400 border border-dark-850">
+                                  {c.category}
+                                </span>
+                                {c.is_enrolled && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-950/60 border border-green-800/40 text-green-400">
+                                    Enrolled ({c.enrollment_type})
+                                  </span>
+                                )}
+                                {c.has_certificate && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/40 text-amber-400 flex items-center gap-1">
+                                    <GraduationCap className="h-3 w-3" /> Certificate: {c.certificate_number}
+                                  </span>
+                                )}
+                              </div>
+                              <h5 className="font-bold text-sm text-white truncate">{c.title}</h5>
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {c.completed_lessons_count} of {c.total_lessons} lessons completed
+                                {c.last_activity && (
+                                  <span className="text-gray-500 ml-2">· Last active {new Date(c.last_activity).toLocaleDateString()}</span>
+                                )}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-4 shrink-0">
+                              <div className="flex flex-col items-end w-32">
+                                <div className="flex justify-between w-full text-[11px] font-mono text-gray-300 mb-1">
+                                  <span>Progress</span>
+                                  <span className="font-bold text-white">{c.percent}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-dark-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-neb-600 to-neb-400 rounded-full"
+                                    style={{ width: `${c.percent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 2: C EDITOR SANDBOX */}
+                  {activityTab === 'c_editor' && (
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Live Status</span>
+                          <div className="mt-1">
+                            {userActivityData.c_editor.is_active ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950 border border-emerald-800 text-xs font-bold text-emerald-400">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" /> Active in Editor Now
+                              </span>
+                            ) : (
+                              <span className="text-sm font-semibold text-gray-400">Inactive</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Total Project Files</span>
+                          <p className="text-2xl font-extrabold text-white mt-1">
+                            {userActivityData.c_editor.files_count}
+                          </p>
+                        </div>
+
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Last Code Activity</span>
+                          <p className="text-xs font-mono font-bold text-gray-300 mt-2">
+                            {userActivityData.c_editor.last_active ? new Date(userActivityData.c_editor.last_active).toLocaleString() : 'Never'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="border border-dark-800 rounded-xl overflow-hidden bg-dark-900/30">
+                        <div className="px-4 py-3 bg-dark-950 border-b border-dark-800">
+                          <h4 className="text-xs uppercase font-bold tracking-wider text-gray-400">
+                            User C Project Files ({userActivityData.c_editor.files.length})
+                          </h4>
+                        </div>
+                        {userActivityData.c_editor.files.length === 0 ? (
+                          <div className="p-8 text-center text-xs text-gray-500">
+                            No files created in C workspace yet.
+                          </div>
+                        ) : (
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="border-b border-dark-800 text-gray-400">
+                                <th className="p-3 pl-4">File Name</th>
+                                <th className="p-3">Language</th>
+                                <th className="p-3">Size</th>
+                                <th className="p-3 pr-4 text-right">Last Saved</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-dark-850">
+                              {userActivityData.c_editor.files.map((f: any) => (
+                                <tr key={f.id} className="hover:bg-dark-900/40">
+                                  <td className="p-3 pl-4 font-mono font-medium text-white flex items-center gap-2">
+                                    <Code2 className="h-3.5 w-3.5 text-neb-400" />
+                                    <span>{f.name}</span>
+                                  </td>
+                                  <td className="p-3 text-gray-400 uppercase font-mono text-[10px]">{f.language}</td>
+                                  <td className="p-3 text-gray-400 font-mono text-[10px]">{f.size_chars} chars</td>
+                                  <td className="p-3 pr-4 text-right text-gray-400 font-mono text-[10px]">
+                                    {new Date(f.updated_at).toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 3: MYSQL LAB */}
+                  {activityTab === 'mysql' && (
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">MySQL Sandbox</span>
+                          <div className="mt-1">
+                            {userActivityData.mysql_lab.is_running ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950 border border-cyan-800 text-xs font-bold text-cyan-400">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" /> Container Running
+                              </span>
+                            ) : userActivityData.mysql_lab.is_active ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950 border border-emerald-800 text-xs font-bold text-emerald-400">
+                                Active Recently
+                              </span>
+                            ) : (
+                              <span className="text-sm font-semibold text-gray-400">Stopped / Idle</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Isolated Database</span>
+                          <p className="text-sm font-mono font-bold text-cyan-400 mt-1">
+                            {userActivityData.mysql_lab.database_name}
+                          </p>
+                        </div>
+
+                        <div className="bg-dark-900/50 border border-dark-800 p-4 rounded-xl">
+                          <span className="text-xs text-gray-400">Last Query / Session</span>
+                          <p className="text-xs font-mono font-bold text-gray-300 mt-2">
+                            {userActivityData.mysql_lab.last_active ? new Date(userActivityData.mysql_lab.last_active).toLocaleString() : 'Never'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="border border-dark-800 rounded-xl p-5 bg-dark-900/30 space-y-4">
+                        <h4 className="text-xs uppercase font-bold tracking-wider text-gray-400">
+                          Database Environment Specification
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                          <div className="p-3 bg-dark-950 rounded-lg border border-dark-850">
+                            <span className="text-gray-500 block mb-0.5">Database Name</span>
+                            <span className="font-mono text-white font-bold">{userActivityData.mysql_lab.database_name}</span>
+                          </div>
+                          <div className="p-3 bg-dark-950 rounded-lg border border-dark-850">
+                            <span className="text-gray-500 block mb-0.5">Container Target</span>
+                            <span className="font-mono text-white font-bold">{userActivityData.mysql_lab.container_name || 'nebcode-mysql-shared'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-dark-900 border-t border-dark-800 flex items-center justify-end">
+              <button
+                onClick={() => setActivityModalUser(null)}
+                className="px-4 py-2 bg-dark-800 hover:bg-dark-700 text-white rounded-lg text-xs font-semibold transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── JSON Course Editor Modal ── */}
+
       {isJsonModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-12 bg-dark-950/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
           <div className="w-full max-w-3xl bg-dark-900 border border-dark-800 rounded-2xl shadow-2xl flex flex-col">

@@ -21,7 +21,9 @@ export const authService = {
   updateAdminWithdrawal: (id: string, data: { status: 'confirmed' | 'rejected' }) => api.patch(`/auth/admin/withdrawals/${id}/`, data),
   getNotifications: () => api.get('/auth/notifications/'),
   markNotificationRead: (id: string) => api.post(`/auth/notifications/${id}/read/`),
+  getUserLearningActivity: (userId: string) => api.get(`/auth/admin/${userId}/learning-activity/`),
 };
+
 
 export const courseService = {
   getCourses: (params?: { category?: string }) => api.get('/courses/', { params }),

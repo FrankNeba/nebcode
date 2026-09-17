@@ -5,13 +5,21 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Paths that require authentication
-  const protectedPaths = ['/mysql-lab', '/editor', '/courses', '/dashboard', '/admin'];
-
-  // Check if the current path starts with any of the protected paths
-  const isProtected = protectedPaths.some(path => 
-    pathname === path || pathname.startsWith(`${path}/`)
+  // Always protected top-level sections
+  const strictlyProtectedPrefixes = ['/mysql-lab', '/editor', '/dashboard', '/admin'];
+  const isStrictlyProtected = strictlyProtectedPrefixes.some(prefix =>
+    pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
+
+  // For /courses: course catalog (/courses) and syllabus overview (/courses/[slug]) are public.
+  // But taking lessons or taking an exam requires login.
+  const isCourseActionProtected = (
+    pathname.includes('/lesson/') ||
+    pathname.includes('/lessons/') ||
+    pathname.includes('/exam')
+  );
+
+  const isProtected = isStrictlyProtected || isCourseActionProtected;
 
   if (isProtected && !token) {
     const loginUrl = new URL('/auth/login', request.url);
@@ -26,9 +34,10 @@ export const config = {
   matcher: [
     '/mysql-lab', '/mysql-lab/:path*',
     '/editor', '/editor/:path*',
-    '/courses', '/courses/:path*',
+    '/courses/:path*',
     '/dashboard', '/dashboard/:path*',
     '/admin', '/admin/:path*',
   ],
 };
+
 
