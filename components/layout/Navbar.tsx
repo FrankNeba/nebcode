@@ -20,6 +20,8 @@ import {
   Phone,
   Shield,
   User,
+  Globe,
+  Table2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useThemeStore } from '@/store/theme.store';
@@ -97,31 +99,32 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
           <Link href="/courses" className={navLinkClass('/courses')}>
             <BookOpen className="h-4 w-4" /> Courses
           </Link>
           <Link href="/mcq" className={navLinkClass('/mcq')}>
-            <FileCheck2 className="h-4 w-4" /> MCQ Papers
+            <FileCheck2 className="h-4 w-4" /> MCQs
+          </Link>
+          <Link href="/editor" className={navLinkClass('/editor')}>
+            <Code2 className="h-4 w-4" /> C Lab
+          </Link>
+          <Link href="/mysql-lab" className={navLinkClass('/mysql-lab')}>
+            <Database className="h-4 w-4" /> MySQL Lab
+          </Link>
+          <Link href="/web-lab" className={navLinkClass('/web-lab')}>
+            <Globe className="h-4 w-4" /> Web Lab
+          </Link>
+          <Link href="/excel-lab" className={navLinkClass('/excel-lab')}>
+            <Table2 className="h-4 w-4" /> Excel Lab
           </Link>
           {isAuthenticated && (
-            <>
-              <Link href="/editor" className={navLinkClass('/editor')}>
-                <Code2 className="h-4 w-4" /> C Editor
-              </Link>
-              <Link href="/mysql-lab" className={navLinkClass('/mysql-lab')}>
-                <Database className="h-4 w-4" /> MySQL Lab
-              </Link>
-              <Link href="/dashboard" className={navLinkClass('/dashboard')}>
-                <LayoutDashboard className="h-4 w-4" /> Dashboard
-              </Link>
-            </>
+            <Link href="/dashboard" className={navLinkClass('/dashboard')}>
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </Link>
           )}
           <Link href="/pricing" className={navLinkClass('/pricing')}>
             <CreditCard className="h-4 w-4" /> Pricing
-          </Link>
-          <Link href="/contact" className={navLinkClass('/contact')}>
-            <Phone className="h-4 w-4" /> Support
           </Link>
         </div>
 
@@ -318,22 +321,36 @@ export function Navbar() {
             >
               <FileCheck2 className="h-4 w-4 text-neb-500" /> MCQ Past Papers
             </Link>
+            <Link
+              href="/editor"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"
+              onClick={() => setOpen(false)}
+            >
+              <Code2 className="h-4 w-4 text-neb-500" /> C &amp; Python Code Editor
+            </Link>
+            <Link
+              href="/mysql-lab"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"
+              onClick={() => setOpen(false)}
+            >
+              <Database className="h-4 w-4 text-neb-500" /> MySQL Database Lab
+            </Link>
+            <Link
+              href="/web-lab"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"
+              onClick={() => setOpen(false)}
+            >
+              <Globe className="h-4 w-4 text-neb-500" /> HTML, CSS &amp; JS Web Lab
+            </Link>
+            <Link
+              href="/excel-lab"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"
+              onClick={() => setOpen(false)}
+            >
+              <Table2 className="h-4 w-4 text-neb-500" /> Excel Spreadsheet Lab
+            </Link>
             {isAuthenticated && (
               <>
-                <Link
-                  href="/editor"
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"
-                  onClick={() => setOpen(false)}
-                >
-                  <Code2 className="h-4 w-4 text-neb-500" /> C Code Editor
-                </Link>
-                <Link
-                  href="/mysql-lab"
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"
-                  onClick={() => setOpen(false)}
-                >
-                  <Database className="h-4 w-4 text-neb-500" /> MySQL Lab
-                </Link>
                 <Link
                   href="/dashboard"
                   className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"

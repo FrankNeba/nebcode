@@ -3,15 +3,15 @@ import Link from 'next/link';
 import {
   Code2,
   Database,
-  Smartphone,
   BookOpen,
   ArrowRight,
-  ShieldCheck,
   FileCheck2,
   CheckCircle2,
   GraduationCap,
   Play,
   HelpCircle,
+  Globe,
+  Table2,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -204,6 +204,50 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 pt-2">
               <span>Open MySQL Lab</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 5: HTML, CSS & JS Web Lab */}
+          <Link
+            href="/web-lab"
+            className="card card-hover p-6 flex flex-col justify-between gap-4 group"
+          >
+            <div className="space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center">
+                <Globe className="h-5 w-5 text-sky-400" />
+              </div>
+              <h3 className="text-lg font-extrabold text-white group-hover:text-sky-400 transition">
+                5. HTML, CSS &amp; JS Web Lab
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                Write HTML5, CSS3, and JavaScript in one editor with an instant live browser preview and interactive JS console on mobile or desktop.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400 pt-2">
+              <span>Open Web Lab</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 6: Microsoft Excel Spreadsheet Lab */}
+          <Link
+            href="/excel-lab"
+            className="card card-hover p-6 flex flex-col justify-between gap-4 group"
+          >
+            <div className="space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+                <Table2 className="h-5 w-5 text-teal-400" />
+              </div>
+              <h3 className="text-lg font-extrabold text-white group-hover:text-teal-400 transition">
+                6. Microsoft Excel Practice Lab
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                Practice 80+ Excel functions (SUM, AVERAGE, IF, RANK, VLOOKUP), $A$1 absolute references, AutoFill, conditional formatting, and charts on your phone.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-teal-400 pt-2">
+              <span>Open Excel Lab</span>
               <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>

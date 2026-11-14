@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { courseService, paymentService } from '@/services';
 import { Spinner } from '@/components/ui/Spinner';
-import { BookOpen, Lock, CheckCircle, Search, Grid3X3, Database, Code, Layers } from 'lucide-react';
+import { BookOpen, Lock, CheckCircle, Search, Grid3X3, Database, Code, Layers, Globe, Table2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Course {
@@ -14,15 +14,17 @@ interface Course {
   thumbnail: string | null;
   price: number;
   is_free: boolean;
-  category: 'mysql' | 'programming' | 'others';
+  category: 'mysql' | 'programming' | 'web' | 'excel' | 'others';
   module_count: number;
 }
 
 
 const CATEGORIES = [
   { id: 'all', name: 'All Courses', icon: Grid3X3 },
-  { id: 'mysql', name: 'MySQL Databases', icon: Database },
   { id: 'programming', name: 'C Programming', icon: Code },
+  { id: 'mysql', name: 'MySQL Databases', icon: Database },
+  { id: 'web', name: 'Web (HTML/CSS/JS)', icon: Globe },
+  { id: 'excel', name: 'Excel Spreadsheets', icon: Table2 },
   { id: 'others', name: 'Other Courses', icon: Layers },
 ];
 
@@ -172,7 +174,15 @@ export default function CoursesPageClient({ initialCourses = [] }: { initialCour
                   <div className="p-5 flex flex-col flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-dark-950 text-gray-400 border border-dark-850">
-                        {course.category === 'mysql' ? 'MySQL' : course.category === 'programming' ? 'C Programming' : 'Other'}
+                        {course.category === 'mysql'
+                          ? 'MySQL'
+                          : course.category === 'programming'
+                          ? 'C Programming'
+                          : course.category === 'web'
+                          ? 'HTML / CSS / JS'
+                          : course.category === 'excel'
+                          ? 'Microsoft Excel'
+                          : 'Other'}
                       </span>
                     </div>
                     <h3 className="font-bold text-lg text-white group-hover:text-neb-400 transition-colors line-clamp-2">{course.title}</h3>

@@ -122,14 +122,24 @@ export default function LessonPage() {
                 </button>
                 <button
                   onClick={() => {
+                    const isWeb =
+                      course?.category === 'web' ||
+                      ['html', 'css', 'js', 'javascript'].includes(lang.toLowerCase());
+                    const isExcel =
+                      course?.category === 'excel' ||
+                      ['excel', 'csv', 'formula'].includes(lang.toLowerCase());
                     const targetUrl = isMySQLCourse
                       ? `/mysql-lab?courseId=${courseId}&lessonId=${lessonId}&code=${encodeURIComponent(codeString)}`
+                      : isWeb
+                      ? `/web-lab?courseId=${courseId}&lessonId=${lessonId}`
+                      : isExcel
+                      ? `/excel-lab?courseId=${courseId}&lessonId=${lessonId}`
                       : `/editor?courseId=${courseId}&lessonId=${lessonId}&code=${encodeURIComponent(codeString)}`;
                     router.push(targetUrl);
                   }}
                   className="text-[10px] text-neb-400 hover:text-neb-300 font-bold transition-all bg-neb-950/40 px-2.5 py-1 rounded border border-neb-800/30 font-sans"
                 >
-                  Try It ▶
+                  Try It
                 </button>
               </div>
             </div>

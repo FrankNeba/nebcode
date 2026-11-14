@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock, Sparkles, GraduationCap, FileCheck2 } from 'lucide-react';
+import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock, Sparkles, GraduationCap, FileCheck2, Globe, Table2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { progressService, paymentService, courseService, ambassadorService } from '@/services';
 import { cn } from '@/lib/utils';
@@ -186,8 +186,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Lab & MCQ shortcuts */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      {/* Practice Labs & MCQ shortcuts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <Link href="/mcq" className="card card-hover p-5 flex items-center gap-4 group border-neb-800/40 bg-gradient-to-br from-neb-950/30 to-dark-900">
           <div className="w-10 h-10 rounded-lg bg-neb-900/60 border border-neb-700/40 flex items-center justify-center shrink-0 group-hover:bg-neb-800 transition-colors">
             <FileCheck2 className="h-5 w-5 text-neb-400" />
@@ -204,8 +204,8 @@ export default function DashboardPage() {
             <Code2 className="h-5 w-5 text-neb-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-white text-sm">C Editor</p>
-            <p className="text-xs text-gray-500">Write and run C programs</p>
+            <p className="font-semibold text-white text-sm">C &amp; Python Lab</p>
+            <p className="text-xs text-gray-500">Write and run programs</p>
           </div>
           {!isSubscribed && (
             <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0", daysLeft > 0 ? "bg-amber-950/40 text-amber-400" : "bg-red-950/40 text-red-400")}>
@@ -229,6 +229,28 @@ export default function DashboardPage() {
             </span>
           )}
           <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-emerald-400 transition-colors shrink-0" />
+        </Link>
+
+        <Link href="/web-lab" className="card card-hover p-5 flex items-center gap-4 group">
+          <div className="w-10 h-10 rounded-lg bg-sky-900/30 border border-sky-800/30 flex items-center justify-center shrink-0 group-hover:bg-sky-900/50 transition-colors">
+            <Globe className="h-5 w-5 text-sky-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-white text-sm">Web Lab (HTML/CSS/JS)</p>
+            <p className="text-xs text-gray-500">Code editor &amp; live viewer</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-sky-400 transition-colors shrink-0" />
+        </Link>
+
+        <Link href="/excel-lab" className="card card-hover p-5 flex items-center gap-4 group">
+          <div className="w-10 h-10 rounded-lg bg-teal-900/30 border border-teal-800/30 flex items-center justify-center shrink-0 group-hover:bg-teal-900/50 transition-colors">
+            <Table2 className="h-5 w-5 text-teal-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-white text-sm">Excel Spreadsheet Lab</p>
+            <p className="text-xs text-gray-500">Formulas, VLOOKUP &amp; charts</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-teal-400 transition-colors shrink-0" />
         </Link>
       </div>
 

@@ -3,6 +3,9 @@ import { useRef, useState, useMemo, useCallback } from 'react';
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { sql } from '@codemirror/lang-sql';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
+import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
 import { undo, redo } from '@codemirror/commands';
@@ -25,7 +28,7 @@ import toast from 'react-hot-toast';
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
-  language?: 'c' | 'cpp' | 'sql' | string;
+  language?: 'c' | 'cpp' | 'sql' | 'html' | 'css' | 'javascript' | 'js' | string;
   height?: string;
   wordWrap?: boolean;
   onSave?: () => void;
@@ -35,6 +38,9 @@ interface CodeEditorProps {
 
 const MOBILE_SYMBOLS_C = ['Tab', '{', '}', '(', ')', '[', ']', ';', '"', "'", '#', '<', '>', '=', '&', '|', '!', '+', '-', '*', '/', '%', '\\n'];
 const MOBILE_SYMBOLS_SQL = ['SELECT ', 'FROM ', 'WHERE ', '*', ';', "'", '"', '(', ')', '=', '<', '>', 'JOIN ', 'GROUP BY ', 'ORDER BY '];
+const MOBILE_SYMBOLS_HTML = ['Tab', '<', '>', '/', '=', '"', "'", '<div>', '</div>', '<p>', '<h1>', '<input>', '<button>', '<table>', '<tr>', '<td>', 'class=""', 'id=""'];
+const MOBILE_SYMBOLS_CSS = ['Tab', '{', '}', ':', ';', '#', '.', 'px', '%', 'rem', 'color: ', 'background: ', 'display: flex;', 'margin: ', 'padding: ', 'border: '];
+const MOBILE_SYMBOLS_JS = ['Tab', '{', '}', '(', ')', '[', ']', ';', '=', '=>', '"', "'", 'const ', 'let ', 'function ', 'console.log()', 'document.getElementById("")', 'addEventListener()'];
 
 export function CodeEditor({
   value,
@@ -154,9 +160,18 @@ export function CodeEditor({
 
   const isLight = theme === 'light';
 
+  const langExtension = useMemo(() => {
+    const norm = (language || 'c').toLowerCase();
+    if (norm === 'sql') return sql();
+    if (norm === 'html') return html({ autoCloseTags: true, matchClosingTags: true });
+    if (norm === 'css') return css();
+    if (norm === 'javascript' || norm === 'js') return javascript();
+    return cpp();
+  }, [language]);
+
   const extensions = useMemo(() => {
     const exts: any[] = [
-      language === 'sql' ? sql() : cpp(),
+      langExtension,
       EditorView.contentAttributes.of({
         autocorrect: 'off',
         autocapitalize: 'off',
@@ -222,9 +237,16 @@ export function CodeEditor({
     }
 
     return exts;
-  }, [language, effectiveWordWrap, onSave, isLight]);
+  }, [langExtension, effectiveWordWrap, onSave, isLight]);
 
-  const symbols = language === 'sql' ? MOBILE_SYMBOLS_SQL : MOBILE_SYMBOLS_C;
+  const symbols = useMemo(() => {
+    const norm = (language || 'c').toLowerCase();
+    if (norm === 'sql') return MOBILE_SYMBOLS_SQL;
+    if (norm === 'html') return MOBILE_SYMBOLS_HTML;
+    if (norm === 'css') return MOBILE_SYMBOLS_CSS;
+    if (norm === 'javascript' || norm === 'js') return MOBILE_SYMBOLS_JS;
+    return MOBILE_SYMBOLS_C;
+  }, [language]);
 
   return (
     <div
