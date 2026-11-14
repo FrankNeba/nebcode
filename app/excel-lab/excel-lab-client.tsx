@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
 import {
   Table2,
   Sigma,
   Download,
   Upload,
-  RotateCcw,
   Undo2,
   Redo2,
   Bold,
@@ -34,12 +32,12 @@ import {
   ListOrdered,
   Check,
   X,
-  HelpCircle,
   BookOpen,
   Layers,
   Filter,
   SlidersHorizontal,
   ChevronRight,
+  Edit2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -47,7 +45,6 @@ import {
   CellData,
   NumberFormatType,
   CellAlign,
-  EXCEL_TEMPLATES,
   EXCEL_FUNCTIONS_CATALOG,
   colIndexToLetter,
   parseCellRef,
@@ -59,9 +56,22 @@ import {
   getConditionalFormattingStyle,
 } from '@/lib/excel-engine';
 
-const STORAGE_KEY = 'nebcode_excel_lab_v1';
+const STORAGE_KEY = 'nebcode_excel_lab_v2';
 const TOTAL_ROWS = 35;
 const TOTAL_COLS = 12; // A to L
+
+function createEmptySheet(id: string, name: string): SheetData {
+  return {
+    id,
+    name,
+    freezeHeader: false,
+    colWidths: {},
+    rowHeights: {},
+    conditionalRules: [],
+    charts: [],
+    cells: {},
+  };
+}
 
 const MOBILE_FORMULA_TOKENS = [
   '=',
@@ -95,18 +105,17 @@ type RibbonTab = 'home' | 'formulas' | 'data' | 'charts';
 type SelectionMode = 'single' | 'range';
 
 export default function ExcelLabClient() {
-  const [templateId, setTemplateId] = useState<string>(EXCEL_TEMPLATES[0].id);
-  const [sheets, setSheets] = useState<SheetData[]>(() =>
-    JSON.parse(JSON.stringify(EXCEL_TEMPLATES[0].sheets))
-  );
-  const [activeSheetId, setActiveSheetId] = useState<string>(EXCEL_TEMPLATES[0].sheets[0].id);
+  const [sheets, setSheets] = useState<SheetData[]>(() => [
+    createEmptySheet('sheet-1', 'Sheet1'),
+  ]);
+  const [activeSheetId, setActiveSheetId] = useState<string>('sheet-1');
 
   // History for Undo / Redo
   const [history, setHistory] = useState<SheetData[][]>([]);
   const [future, setFuture] = useState<SheetData[][]>([]);
 
   // Selection state
-  const [activeCell, setActiveCell] = useState<string>('E2');
+  const [activeCell, setActiveCell] = useState<string>('A1');
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('single');
 
@@ -160,7 +169,6 @@ export default function ExcelLabClient() {
         if (parsed.sheets && Array.isArray(parsed.sheets) && parsed.sheets.length > 0) {
           setSheets(parsed.sheets);
           setActiveSheetId(parsed.activeSheetId || parsed.sheets[0].id);
-          if (parsed.templateId) setTemplateId(parsed.templateId);
         }
       }
     } catch {
@@ -173,12 +181,12 @@ export default function ExcelLabClient() {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ templateId, activeSheetId, sheets })
+        JSON.stringify({ activeSheetId, sheets })
       );
     } catch {
       // ignore storage errors
     }
-  }, [templateId, activeSheetId, sheets]);
+  }, [activeSheetId, sheets]);
 
   // Sync formula bar when activeCell changes
   useEffect(() => {
@@ -662,21 +670,6 @@ export default function ExcelLabClient() {
     toast.success(`Pasted into ${selectedRangeString}`);
   };
 
-  // Template Switching
-  const handleSelectTemplate = (id: string) => {
-    const found = EXCEL_TEMPLATES.find((t) => t.id === id);
-    if (!found) return;
-    const cloned = JSON.parse(JSON.stringify(found.sheets)) as SheetData[];
-    setTemplateId(id);
-    setSheets(cloned);
-    setActiveSheetId(cloned[0].id);
-    setActiveCell('A1');
-    setRangeEnd(null);
-    setHistory([]);
-    setFuture([]);
-    toast.success(`Loaded template: ${found.title}`);
-  };
-
   // Export CSV (Excel compatible)
   const handleExportCSV = () => {
     const rows: string[] = [];
@@ -745,21 +738,31 @@ export default function ExcelLabClient() {
     e.target.value = '';
   };
 
-  // Add / Delete Sheet
+  // Add / Rename / Delete Sheet
   const handleAddSheet = () => {
-    const nextNum = sheets.length + 1;
-    const newSheet: SheetData = {
-      id: `sheet-${Date.now()}`,
-      name: `Sheet${nextNum}`,
-      cells: {},
-      colWidths: {},
-      rowHeights: {},
-      conditionalRules: [],
-      charts: [],
-    };
+    let nextNum = sheets.length + 1;
+    let candidateName = `Sheet${nextNum}`;
+    while (sheets.some((s) => s.name.toLowerCase() === candidateName.toLowerCase())) {
+      nextNum++;
+      candidateName = `Sheet${nextNum}`;
+    }
+    const newSheet = createEmptySheet(`sheet-${Date.now()}`, candidateName);
     pushUndoState([...sheets, newSheet]);
     setActiveSheetId(newSheet.id);
     setActiveCell('A1');
+    setRangeEnd(null);
+    toast.success(`Created ${candidateName}`);
+  };
+
+  const handleRenameSheet = (sheet: SheetData) => {
+    const newName = prompt('Rename sheet:', sheet.name);
+    if (!newName || !newName.trim()) return;
+    const trimmed = newName.trim();
+    const nextSheets = sheets.map((s) =>
+      s.id === sheet.id ? { ...s, name: trimmed } : s
+    );
+    pushUndoState(nextSheets);
+    toast.success(`Renamed sheet to ${trimmed}`);
   };
 
   const handleDeleteSheet = (id: string) => {
@@ -861,9 +864,7 @@ export default function ExcelLabClient() {
   }, [fnCategory, fnSearch]);
 
   return (
-    <div className="h-[100dvh] bg-dark-950 flex flex-col overflow-hidden">
-      <Navbar />
-
+    <div className="h-[calc(100dvh-116px)] md:h-[calc(100dvh-56px)] bg-dark-950 flex flex-col overflow-hidden">
       {/* Top Workbook Header Bar */}
       <div className="bg-dark-900 border-b border-dark-800 px-2.5 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -880,23 +881,18 @@ export default function ExcelLabClient() {
               </span>
             </div>
             <p className="text-[10px] text-dark-400 hidden sm:block truncate">
-              Formulas, $A$1 References, VLOOKUP, IF, RANK, Charts & AutoFill
+              Formulas, $A$1 References, VLOOKUP, IF, RANK, Charts &amp; AutoFill
             </p>
           </div>
 
-          {/* Template Selector */}
-          <select
-            value={templateId}
-            onChange={(e) => handleSelectTemplate(e.target.value)}
-            aria-label="Select Excel Starter Workbook"
-            className="ml-1 sm:ml-2 bg-dark-800 border border-dark-700 text-xs text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 max-w-[165px] sm:max-w-[240px] truncate"
+          <button
+            onClick={handleAddSheet}
+            className="ml-1 sm:ml-2 px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-1 transition-colors shrink-0"
+            title="Create New Empty Sheet"
           >
-            {EXCEL_TEMPLATES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-              </option>
-            ))}
-          </select>
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Sheet</span>
+          </button>
         </div>
 
         {/* Right Actions */}
@@ -1715,13 +1711,13 @@ export default function ExcelLabClient() {
       {/* Bottom Sheet Tabs + Live Excel Status Bar */}
       <div className="bg-dark-900 border-t border-dark-800 px-2.5 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
         {/* Multi-sheet tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {sheets.map((s) => {
             const isActive = s.id === activeSheet.id;
             return (
               <div
                 key={s.id}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border transition-colors ${
                   isActive
                     ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
                     : 'bg-dark-800 border-dark-700 text-dark-300 hover:text-white'
@@ -1731,15 +1727,26 @@ export default function ExcelLabClient() {
                   setActiveCell('A1');
                   setRangeEnd(null);
                 }}
+                onDoubleClick={() => handleRenameSheet(s)}
               >
                 <span>{s.name}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRenameSheet(s);
+                  }}
+                  className="p-0.5 text-dark-400 hover:text-emerald-400"
+                  title="Rename Sheet"
+                >
+                  <Edit2 className="w-3 h-3" />
+                </button>
                 {sheets.length > 1 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteSheet(s.id);
                     }}
-                    className="p-0.5 hover:text-red-400"
+                    className="p-0.5 text-dark-400 hover:text-red-400"
                     title="Delete Sheet"
                   >
                     <X className="w-3 h-3" />
@@ -1750,10 +1757,10 @@ export default function ExcelLabClient() {
           })}
           <button
             onClick={handleAddSheet}
-            className="px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-xs text-dark-300 hover:text-white flex items-center gap-1"
-            title="Add New Worksheet"
+            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white flex items-center gap-1 shadow-sm shrink-0"
+            title="Create New Empty Sheet"
           >
-            <Plus className="w-3.5 h-3.5" /> Sheet
+            <Plus className="w-3.5 h-3.5" /> New Sheet
           </button>
         </div>
 
