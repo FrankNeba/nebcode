@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Terminal, RefreshCw, Info, Star, ArrowLeft, Copy, Check, ClipboardPaste, Trash2, History } from 'lucide-react';
+import { Terminal, RefreshCw, Info, Star, ArrowLeft, Copy, Check, ClipboardPaste, Trash2, History, Maximize2, Minimize2 } from 'lucide-react';
 import { cn, copyToClipboard } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { useMySQLLabStore } from '@/store/mysql-lab.store';
@@ -32,6 +32,7 @@ function MySQLLabContent() {
   const termRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const {
     connected,
@@ -169,27 +170,36 @@ function MySQLLabContent() {
 
       <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4">
         {/* Terminal Container */}
-        <div className="lg:col-span-3 flex flex-col card overflow-hidden border-dark-800 bg-dark-900/40 backdrop-blur-sm shadow-2xl">
-          {/* Terminal Top Bar */}
+        <div className={cn(
+          "lg:col-span-3 flex flex-col overflow-hidden border-dark-800 bg-dark-900/40 backdrop-blur-sm shadow-2xl",
+          isFullscreen ? "fixed inset-0 z-[200] bg-[#06060c] rounded-none border-0 h-screen" : "card"
+        )}>
+          {isFullscreen && (
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(false)}
+              className="fixed top-3 right-3 z-[210] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900/90 hover:bg-dark-800 border border-neb-500/50 text-white text-xs font-bold shadow-2xl backdrop-blur-md transition-all"
+              title="Exit Fullscreen View"
+            >
+              <Minimize2 className="h-3.5 w-3.5 text-neb-400" />
+              <span>Exit Fullscreen</span>
+            </button>
+          )}
+          {/* Terminal Top Bar (hidden in Fullscreen View so only terminal is shown) */}
+          {!isFullscreen && (
           <div className="flex items-center justify-between px-4 py-2 bg-dark-900 border-b border-dark-800 text-xs">
-            <span className="text-gray-400 font-mono text-[11px]">mysql-8.0-interactive (tap any command to copy)</span>
-            {lines.length > 0 && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const allCmds = lines
-                      .filter(l => l.type === 'input')
-                      .map(l => l.text.replace(/^mysql>\s*/i, '').trim())
-                      .join('\n');
-                    if (allCmds) handleCopyCommand(allCmds, 'copy-all-cmds', 'All SQL commands copied!');
-                    else toast.error('No commands to copy yet');
-                  }}
-                  className="flex items-center gap-1 px-2 py-1 rounded bg-dark-800 hover:bg-dark-700 text-gray-300 text-[10px] font-semibold border border-dark-700 transition"
-                >
-                  {copiedId === 'copy-all-cmds' ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-neb-400" />}
-                  Copy All Commands
-                </button>
+            <span className="text-gray-400 font-mono text-[11px]">mysql-8.0-interactive</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(true)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 text-gray-200 text-[10px] font-semibold border border-dark-700 transition"
+                title="Fullscreen View (See SQL terminal alone with no other buttons)"
+              >
+                <Maximize2 className="h-3 w-3 text-emerald-400" />
+                <span>Fullscreen</span>
+              </button>
+              {lines.length > 0 && (
                 <button
                   type="button"
                   onClick={clearLines}
@@ -198,14 +208,18 @@ function MySQLLabContent() {
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
+          )}
 
           {/* Terminal output */}
           <div
             ref={termRef}
-            className="overflow-y-auto p-4 font-mono text-xs md:text-sm leading-relaxed bg-[#06060c] select-text h-[350px] md:h-[450px] space-y-1.5"
+            className={cn(
+              "overflow-y-auto p-4 font-mono text-xs md:text-sm leading-relaxed bg-[#06060c] select-text space-y-1.5",
+              isFullscreen ? "flex-1" : "h-[350px] md:h-[450px]"
+            )}
             onClick={(e) => {
               // Do not steal focus if user is selecting text or clicking a button
               const selection = window.getSelection()?.toString();
@@ -219,7 +233,6 @@ function MySQLLabContent() {
               </div>
             )}
             {lines.map((line, i) => {
-              const lineId = `line-${i}`;
               const isInput = line.type === 'input';
               const displayText = isInput
                 ? (line.text.startsWith('mysql>') ? line.text : `mysql> ${line.text}`)
@@ -229,64 +242,19 @@ function MySQLLabContent() {
                 <div
                   key={i}
                   className={cn(
-                    "group relative rounded-lg px-2.5 py-1.5 transition-colors flex items-start justify-between gap-2",
+                    "rounded-lg px-2.5 py-1 transition-colors",
                     isInput
                       ? 'bg-emerald-950/20 border border-emerald-900/30 text-green-400 font-semibold'
                       : line.type === 'error'
                         ? 'bg-red-950/15 text-red-400 font-medium'
                         : line.type === 'system'
                           ? 'text-yellow-500/80 italic text-xs'
-                          : 'text-green-300 hover:bg-white/[0.02]'
+                          : 'text-green-300'
                   )}
                 >
-                  <pre className="whitespace-pre-wrap break-all font-mono text-xs md:text-[13px] leading-normal opacity-95 select-text flex-1">
+                  <pre className="whitespace-pre-wrap break-all font-mono text-xs md:text-[13px] leading-normal opacity-95 select-text">
                     {displayText}
                   </pre>
-
-                  {(isInput || line.type === 'output') && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      {isInput && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const clean = line.text.replace(/^mysql>\s*/i, '').trim();
-                            setInput(clean);
-                            inputRef.current?.focus();
-                          }}
-                          className="px-2 py-1 rounded bg-dark-800/90 hover:bg-dark-700 text-gray-300 text-[10px] font-sans font-semibold border border-dark-700 transition active:scale-95"
-                          title="Load into input"
-                        >
-                          Use
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyCommand(
-                            line.text,
-                            lineId,
-                            isInput ? 'SQL command copied!' : 'Output copied!'
-                          );
-                        }}
-                        className="flex items-center gap-1 px-2 py-1 rounded bg-dark-800/90 hover:bg-dark-700 text-gray-200 text-[10px] font-sans font-semibold border border-dark-700 transition active:scale-95"
-                        title="Copy"
-                      >
-                        {copiedId === lineId ? (
-                          <>
-                            <Check className="h-3 w-3 text-emerald-400" />
-                            <span className="text-emerald-400">Copied</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3 w-3 text-neb-400" />
-                            <span>Copy</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
                 </div>
               );
             })}

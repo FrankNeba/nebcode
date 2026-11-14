@@ -28,17 +28,19 @@ import toast from 'react-hot-toast';
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
-  language?: 'c' | 'cpp' | 'sql' | 'html' | 'css' | 'javascript' | 'js' | string;
+  language?: 'c' | 'cpp' | 'python' | 'sql' | 'html' | 'css' | 'javascript' | 'js' | string;
   height?: string;
   wordWrap?: boolean;
   onSave?: () => void;
   className?: string;
   showQuickBar?: boolean;
+  notepadPlusPlus?: boolean;
 }
 
 const MOBILE_SYMBOLS_C = ['Tab', '{', '}', '(', ')', '[', ']', ';', '"', "'", '#', '<', '>', '=', '&', '|', '!', '+', '-', '*', '/', '%', '\\n'];
+const MOBILE_SYMBOLS_PYTHON = ['Tab', ':', '(', ')', '[', ']', '{', '}', '=', '==', '!=', '"', "'", '#', 'def ', 'for ', 'in ', 'range()', 'if ', 'else:', 'print()', 'input()', 'return '];
 const MOBILE_SYMBOLS_SQL = ['SELECT ', 'FROM ', 'WHERE ', '*', ';', "'", '"', '(', ')', '=', '<', '>', 'JOIN ', 'GROUP BY ', 'ORDER BY '];
-const MOBILE_SYMBOLS_HTML = ['Tab', '<', '>', '/', '=', '"', "'", '<div>', '</div>', '<p>', '<h1>', '<input>', '<button>', '<table>', '<tr>', '<td>', 'class=""', 'id=""'];
+const MOBILE_SYMBOLS_HTML = ['Tab', '<', '>', '/', '=', '"', "'", '<div>', '</div>', '<p>', '<h1>', '<link rel="stylesheet" href="style.css">', '<script src="script.js"></script>', '<a>', '<table>', '<tr>', '<td>', 'class=""', 'id=""'];
 const MOBILE_SYMBOLS_CSS = ['Tab', '{', '}', ':', ';', '#', '.', 'px', '%', 'rem', 'color: ', 'background: ', 'display: flex;', 'margin: ', 'padding: ', 'border: '];
 const MOBILE_SYMBOLS_JS = ['Tab', '{', '}', '(', ')', '[', ']', ';', '=', '=>', '"', "'", 'const ', 'let ', 'function ', 'console.log()', 'document.getElementById("")', 'addEventListener()'];
 
@@ -51,6 +53,7 @@ export function CodeEditor({
   onSave,
   className,
   showQuickBar = true,
+  notepadPlusPlus = false,
 }: CodeEditorProps) {
   const editorRef = useRef<ReactCodeMirrorRef>(null);
   const { isMobileMode, setMobileMode } = useEditorStore();
@@ -158,7 +161,7 @@ export function CodeEditor({
     }
   };
 
-  const isLight = theme === 'light';
+  const isLight = notepadPlusPlus ? true : theme === 'light';
 
   const langExtension = useMemo(() => {
     const norm = (language || 'c').toLowerCase();
@@ -181,39 +184,42 @@ export function CodeEditor({
       EditorView.theme({
         '&': {
           height: '100%',
-          fontSize: '13.5px',
-          backgroundColor: isLight ? '#ffffff' : '#090912',
-          color: isLight ? '#0f172a' : '#e8e8f0',
+          fontSize: notepadPlusPlus ? '14px' : '13.5px',
+          backgroundColor: notepadPlusPlus ? '#ffffff' : isLight ? '#ffffff' : '#090912',
+          color: notepadPlusPlus ? '#000000' : isLight ? '#0f172a' : '#e8e8f0',
         },
         '.cm-scroller': {
-          fontFamily: 'var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace',
-          lineHeight: '1.65',
+          fontFamily: notepadPlusPlus
+            ? '"Courier New", Consolas, "Liberation Mono", monospace'
+            : 'var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace',
+          lineHeight: notepadPlusPlus ? '1.55' : '1.65',
           overflowX: effectiveWordWrap ? 'hidden' : 'auto',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
         },
         '.cm-content': {
-          padding: '12px 0',
-          caretColor: '#e11d48',
+          padding: notepadPlusPlus ? '6px 0' : '12px 0',
+          caretColor: notepadPlusPlus ? '#000000' : '#e11d48',
           whiteSpace: effectiveWordWrap ? 'pre-wrap' : 'pre',
         },
         '.cm-line': {
           padding: '0 16px 0 8px',
         },
         '.cm-gutters': {
-          backgroundColor: isLight ? '#f8fafc' : '#07070e',
-          color: isLight ? '#64748b' : '#4b5563',
-          borderRight: isLight ? '1px solid #e2e8f0' : '1px solid #1a1a2e',
+          backgroundColor: notepadPlusPlus ? '#e4e4e4' : isLight ? '#f8fafc' : '#07070e',
+          color: notepadPlusPlus ? '#555555' : isLight ? '#64748b' : '#4b5563',
+          borderRight: notepadPlusPlus ? '2px solid #a0a0a0' : isLight ? '1px solid #e2e8f0' : '1px solid #1a1a2e',
+          fontWeight: notepadPlusPlus ? '600' : 'normal',
         },
         '.cm-activeLine': {
-          backgroundColor: isLight ? 'rgba(225, 29, 72, 0.05)' : 'rgba(225, 29, 72, 0.06)',
+          backgroundColor: notepadPlusPlus ? '#e8f2fe' : isLight ? 'rgba(225, 29, 72, 0.05)' : 'rgba(225, 29, 72, 0.06)',
         },
         '.cm-activeLineGutter': {
-          backgroundColor: isLight ? 'rgba(225, 29, 72, 0.1)' : 'rgba(225, 29, 72, 0.12)',
-          color: '#e11d48',
+          backgroundColor: notepadPlusPlus ? '#d0e2f8' : isLight ? 'rgba(225, 29, 72, 0.1)' : 'rgba(225, 29, 72, 0.12)',
+          color: notepadPlusPlus ? '#000080' : '#e11d48',
         },
         '.cm-selectionBackground, ::selection': {
-          backgroundColor: isLight ? 'rgba(225, 29, 72, 0.2) !important' : 'rgba(225, 29, 72, 0.3) !important',
+          backgroundColor: notepadPlusPlus ? '#add6ff !important' : isLight ? 'rgba(225, 29, 72, 0.2) !important' : 'rgba(225, 29, 72, 0.3) !important',
         },
       }),
     ];
@@ -237,10 +243,11 @@ export function CodeEditor({
     }
 
     return exts;
-  }, [langExtension, effectiveWordWrap, onSave, isLight]);
+  }, [langExtension, effectiveWordWrap, onSave, isLight, notepadPlusPlus]);
 
   const symbols = useMemo(() => {
     const norm = (language || 'c').toLowerCase();
+    if (norm === 'python' || norm === 'py') return MOBILE_SYMBOLS_PYTHON;
     if (norm === 'sql') return MOBILE_SYMBOLS_SQL;
     if (norm === 'html') return MOBILE_SYMBOLS_HTML;
     if (norm === 'css') return MOBILE_SYMBOLS_CSS;

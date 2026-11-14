@@ -1,17 +1,23 @@
 'use client';
-import { Play, Download, RotateCcw, Eye, EyeOff, Save, PanelLeft, PanelLeftClose, Smartphone, Monitor } from 'lucide-react';
+import { Play, Download, RotateCcw, Eye, EyeOff, Save, PanelLeft, PanelLeftClose, Smartphone, Monitor, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useEditorStore } from '@/store/editor.store';
 import { executionService, fileService } from '@/services';
 import toast from 'react-hot-toast';
 
-interface Props { showAnswerToggle?: boolean; lessonId?: string; isSidebarOpen?: boolean; onToggleSidebar?: () => void; }
+interface Props {
+  showAnswerToggle?: boolean;
+  lessonId?: string;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+  onEnterFullscreenCode?: () => void;
+}
 
 import { useRef, useEffect } from 'react';
 
 import { getWsUrl } from '@/lib/api';
 
-export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSidebar }: Props) {
+export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSidebar, onEnterFullscreenCode }: Props) {
   const { activeFile, isRunning, setIsRunning, setWsOutput, appendWsOutput, setOutput, isMobileMode, setMobileMode, toggleAnswer, showAnswer } = useEditorStore();
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -31,9 +37,6 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
     if (!activeFile?.content?.trim()) { toast.error('Write some code first!'); return; }
 
     // Strip all handlers from the old socket BEFORE closing it.
-    // Without this, the stale onclose fires asynchronously and calls
-    // setIsRunning(false) — overwriting the setIsRunning(true) below
-    // and leaving the terminal locked on every run after the first.
     if (socketRef.current) {
       socketRef.current.onopen    = null;
       socketRef.current.onmessage = null;
@@ -49,8 +52,15 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
     const ws = new WebSocket(getWsUrl('/ws/execute/c/'));
     socketRef.current = ws;
 
+    const isPython = activeFile.name?.toLowerCase().endsWith('.py') || activeFile.language === 'python';
+
     ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'run', code: activeFile.content }));
+      ws.send(JSON.stringify({
+        type: 'run',
+        code: activeFile.content,
+        language: isPython ? 'python' : 'c',
+        filename: activeFile.name || (isPython ? 'main.py' : 'main.c'),
+      }));
     };
 
     ws.onmessage = (e) => {
@@ -133,6 +143,18 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
         {isMobileMode ? <Monitor className="h-3.5 w-3.5 text-neb-400" /> : <Smartphone className="h-3.5 w-3.5 text-neb-400" />}
         <span className="text-xs">{isMobileMode ? 'Switch to Desktop' : 'Switch to Mobile'}</span>
       </Button>
+      {onEnterFullscreenCode && (
+        <Button
+          onClick={onEnterFullscreenCode}
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 border border-dark-700"
+          title="Fullscreen View (See entire code alone with no other buttons)"
+        >
+          <Maximize2 className="h-3.5 w-3.5 text-emerald-400" />
+          <span className="text-xs">Fullscreen</span>
+        </Button>
+      )}
       {showAnswerToggle && (
         <Button onClick={toggleAnswer} variant={showAnswer ? 'danger' : 'ghost'} size="sm">
           {showAnswer ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}

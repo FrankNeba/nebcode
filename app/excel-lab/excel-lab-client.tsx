@@ -38,6 +38,8 @@ import {
   SlidersHorizontal,
   ChevronRight,
   Edit2,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -127,6 +129,7 @@ export default function ExcelLabClient() {
   // Ribbon & Modals
   const [ribbonTab, setRibbonTab] = useState<RibbonTab>('home');
   const [showFunctionModal, setShowFunctionModal] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [fnSearch, setFnSearch] = useState<string>('');
   const [fnCategory, setFnCategory] = useState<string>('All');
   const [showChartPanel, setShowChartPanel] = useState<boolean>(false);
@@ -864,7 +867,28 @@ export default function ExcelLabClient() {
   }, [fnCategory, fnSearch]);
 
   return (
-    <div className="h-[calc(100dvh-116px)] md:h-[calc(100dvh-56px)] bg-dark-950 flex flex-col overflow-hidden">
+    <div
+      className={`${
+        isFullscreen
+          ? 'fixed inset-0 z-[200] h-screen w-screen'
+          : 'h-[calc(100dvh-116px)] md:h-[calc(100dvh-56px)]'
+      } bg-dark-950 flex flex-col overflow-hidden`}
+    >
+      {/* Floating Exit Fullscreen Button (Only visible when Fullscreen View is active) */}
+      {isFullscreen && (
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(false)}
+          className="fixed top-3 right-3 z-[210] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900/90 hover:bg-dark-800 border border-emerald-500/60 text-white text-xs font-bold shadow-2xl backdrop-blur-md transition-all"
+          title="Exit Fullscreen View"
+        >
+          <Minimize2 className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Exit Fullscreen</span>
+        </button>
+      )}
+
+      {!isFullscreen && (
+      <>
       {/* Top Workbook Header Bar */}
       <div className="bg-dark-900 border-b border-dark-800 px-2.5 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -961,6 +985,14 @@ export default function ExcelLabClient() {
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Export CSV</span>
+          </button>
+          <button
+            onClick={() => setIsFullscreen(true)}
+            title="Fullscreen View (See entire sheet alone with no other buttons)"
+            className="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 text-emerald-400 border border-emerald-500/40 text-xs font-semibold flex items-center gap-1 transition-colors shadow-sm"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+            <span>Fullscreen</span>
           </button>
         </div>
       </div>
@@ -1405,6 +1437,8 @@ export default function ExcelLabClient() {
           </button>
         </div>
       </div>
+      </>
+      )}
 
       {/* Main Workspace: Spreadsheet Grid + Collapsible Chart Drawer */}
       <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden relative">
@@ -1708,7 +1742,8 @@ export default function ExcelLabClient() {
         )}
       </div>
 
-      {/* Bottom Sheet Tabs + Live Excel Status Bar */}
+      {/* Bottom Sheet Tabs + Live Excel Status Bar (Hidden in Fullscreen View) */}
+      {!isFullscreen && (
       <div className="bg-dark-900 border-t border-dark-800 px-2.5 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0">
         {/* Multi-sheet tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
@@ -1787,6 +1822,7 @@ export default function ExcelLabClient() {
           )}
         </div>
       </div>
+      )}
 
       {/* Function Catalog Modal (fx) */}
       {showFunctionModal && (

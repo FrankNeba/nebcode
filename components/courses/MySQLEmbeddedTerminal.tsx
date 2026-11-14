@@ -122,34 +122,23 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
           </div>
         )}
         {lines.map((line, i) => {
-          const lineId = `emb-line-${i}`;
           const isInput = line.type === 'input';
           return (
             <div
               key={i}
               className={cn(
-                "mb-0.5 flex items-start justify-between gap-2 rounded px-2 py-1",
+                "mb-0.5 rounded px-2 py-1",
                 isInput ? 'bg-emerald-950/20 border border-emerald-900/30 text-green-400 font-semibold' :
                   line.type === 'error' ? 'text-red-400 font-medium' :
                     line.type === 'system' ? 'text-yellow-500/80 italic text-[10px]' :
                       'text-green-300'
               )}
             >
-              <pre className="whitespace-pre-wrap break-all font-mono leading-normal select-text flex-1">
+              <pre className="whitespace-pre-wrap break-all font-mono leading-normal select-text">
                 {isInput
                   ? (line.text.startsWith('mysql>') ? line.text : `mysql> ${line.text}`)
                   : line.text.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\s*->\s*/gm, '')}
               </pre>
-              {(isInput || line.type === 'output') && (
-                <button
-                  type="button"
-                  onClick={() => handleCopy(line.text, lineId)}
-                  className="p-1 rounded bg-dark-800 hover:bg-dark-700 text-gray-300 border border-dark-700 shrink-0 active:scale-95"
-                  title="Copy command"
-                >
-                  {copiedId === lineId ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-neb-400" />}
-                </button>
-              )}
             </div>
           );
         })}

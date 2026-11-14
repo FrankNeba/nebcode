@@ -264,10 +264,20 @@ export function OutputConsole() {
     <div
       className={cn(
         'bg-[#0a0a14] flex flex-col border-t border-dark-700',
-        isTerminalMaximized && 'fixed inset-0 z-50 h-screen',
+        isTerminalMaximized && 'fixed inset-0 z-[200] h-screen',
       )}
       style={isTerminalMaximized ? {} : { height: `${terminalHeight}px` }}
     >
+      {isTerminalMaximized && (
+        <button
+          onClick={() => setTerminalMaximized(false)}
+          className="fixed top-3 right-3 z-[210] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900/90 hover:bg-dark-800 border border-neb-500/50 text-white text-xs font-bold shadow-2xl backdrop-blur-md transition-all"
+          title="Exit Fullscreen Output"
+        >
+          <Minimize2 className="h-3.5 w-3.5 text-neb-400" />
+          <span>Exit Fullscreen</span>
+        </button>
+      )}
       <style jsx global>{`
         @keyframes blink {
           0%, 100% { opacity: 1; }
@@ -293,7 +303,8 @@ export function OutputConsole() {
         />
       )}
 
-      {/* Toolbar */}
+      {/* Toolbar (hidden in Fullscreen Output mode so only output is visible) */}
+      {!isTerminalMaximized && (
       <div className="flex items-center justify-between px-3 py-1.5 bg-dark-900 border-b border-dark-700 shrink-0">
         <div className="flex items-center gap-2">
           <Terminal className="h-3.5 w-3.5 text-gray-600" />
@@ -319,19 +330,23 @@ export function OutputConsole() {
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setTerminalMaximized(!isTerminalMaximized)}
-            className="p-1 rounded hover:bg-dark-600 text-gray-500"
+            onClick={() => setTerminalMaximized(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-dark-600 text-gray-400 hover:text-white text-[11px] font-medium"
+            title="Fullscreen Output"
           >
-            {isTerminalMaximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            <Maximize2 className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Fullscreen</span>
           </button>
           <button
             onClick={() => { setWsOutput([]); setOutput(null); }}
             className="p-1 rounded hover:bg-dark-600 text-gray-500"
+            title="Clear Output"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
+      )}
 
       {/* Content */}
       <div

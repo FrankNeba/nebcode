@@ -117,10 +117,10 @@ export default function ProfilePage() {
       <div className="card p-5 mb-4 flex flex-col gap-4 border border-neb-600/20 bg-dark-900/40">
         <h2 className="font-bold text-white text-lg flex items-center gap-2">
           <span>Refer & Earn</span>
-          <Badge variant="secondary" className="text-xs">Up to 1,000 FRS / Friend</Badge>
+          <Badge variant="secondary" className="text-xs">Up to 500 FRS / Friend (1,000 FRS for Ambassadors)</Badge>
         </h2>
         <p className="text-sm text-gray-400">
-          Share your link and earn: <strong className="text-neb-300">1,000 FRS</strong> per yearly sub, <strong className="text-neb-300">500 FRS</strong> for a friend's first monthly, and <strong className="text-neb-300">100 FRS</strong> on every renewal.
+          Share your link and earn: <strong className="text-neb-300">500 FRS</strong> per yearly sub or book code (<strong className="text-neb-300">1,000 FRS</strong> for Ambassadors), <strong className="text-neb-300">250 FRS</strong> for a friend&apos;s first monthly (<strong className="text-neb-300">500 FRS</strong> for Ambassadors), and <strong className="text-neb-300">150 FRS</strong> on every renewal (<strong className="text-neb-300">300 FRS</strong> for Ambassadors).
         </p>
 
         {/* Referral code + link */}

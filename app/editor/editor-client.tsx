@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Code2, ArrowLeft } from 'lucide-react';
+import { Code2, ArrowLeft, Minimize2 } from 'lucide-react';
 import { FileNode } from '@/types';
 import { fileService, executionService } from '@/services';
 import { useEditorStore } from '@/store/editor.store';
@@ -21,6 +21,11 @@ int main() {
 }
 `;
 
+const DEFAULT_PY = `# Nebcode Python 3 Practice Lab
+name = input("Enter your name: ")
+print(f"Hello, {name}! Welcome to Nebcode Python.")
+`;
+
 export const dynamic = 'force-dynamic';
 
 function EditorContent() {
@@ -33,6 +38,7 @@ function EditorContent() {
   const [openFiles, setOpenFiles] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isCodeFullscreen, setIsCodeFullscreen] = useState(false);
 
   useEffect(() => {
     const codeParam = searchParams.get('code');
@@ -91,8 +97,10 @@ function EditorContent() {
 
   const handleCreateFile = async (parentId: string | null, name: string) => {
     try {
-      const payload: any = { name, node_type: 'file', language: 'c' };
+      const isPy = name.toLowerCase().endsWith('.py');
+      const payload: any = { name, node_type: 'file', language: isPy ? 'python' : 'c' };
       if (name.endsWith('.c')) payload.content = DEFAULT_C;
+      else if (isPy) payload.content = DEFAULT_PY;
       if (parentId) payload.parent = parentId;
       const { data } = await fileService.createNode(payload);
       const { data: refreshed } = await fileService.listFiles();
@@ -171,15 +179,29 @@ function EditorContent() {
         </div>
 
         <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${isMobileMode ? 'max-w-md mx-auto border-x border-dark-700 shadow-2xl bg-dark-900' : ''}`}>
-          <RunBar isSidebarOpen={isSidebarOpen} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+          <RunBar
+            isSidebarOpen={isSidebarOpen}
+            onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            onEnterFullscreenCode={() => setIsCodeFullscreen(true)}
+          />
           <EditorTabs openFiles={openFiles} activeFileId={activeFile?.id || null} onSelect={openFile} onClose={closeFile} />
 
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className={isCodeFullscreen ? 'fixed inset-0 z-[200] bg-dark-950 flex flex-col overflow-hidden' : 'flex-1 flex flex-col overflow-hidden'}>
+            {isCodeFullscreen && (
+              <button
+                onClick={() => setIsCodeFullscreen(false)}
+                className="fixed top-3 right-3 z-[210] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-900/90 hover:bg-dark-800 border border-neb-500/50 text-white text-xs font-bold shadow-2xl backdrop-blur-md transition-all"
+                title="Exit Fullscreen View"
+              >
+                <Minimize2 className="h-3.5 w-3.5 text-neb-400" />
+                <span>Exit Fullscreen</span>
+              </button>
+            )}
             {activeFile ? (
               <div className="flex-1 overflow-hidden">
                 <CodeEditor
                   height="100%"
-                  language="c"
+                  language={activeFile.name?.toLowerCase().endsWith('.py') || activeFile.language === 'python' ? 'python' : 'c'}
                   value={activeFile.content}
                   onChange={handleEditorChange}
                   wordWrap={isMobileMode}
@@ -190,7 +212,7 @@ function EditorContent() {
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <Code2 className="h-12 w-12 text-dark-500 mb-4" />
                 <p className="text-gray-600 text-sm">No file open</p>
-                <p className="text-gray-700 text-xs mt-1">Create or select a file from the explorer</p>
+                <p className="text-gray-700 text-xs mt-1">Create or select a file (.c or .py) from the explorer</p>
               </div>
             )}
           </div>

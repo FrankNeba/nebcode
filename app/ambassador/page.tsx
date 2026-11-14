@@ -171,11 +171,11 @@ export default function AmbassadorPage() {
             <h2 className="text-xl font-bold mb-4 text-gray-200">Referral Earnings</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-black/30 border border-white/5 rounded-xl p-4">
-                <span className="text-xs text-gray-400 block mb-1">Monthly Earnings (500 XAF each)</span>
+                <span className="text-xs text-gray-400 block mb-1">Monthly Earnings (500 XAF 1st / 300 XAF renew)</span>
                 <p className="text-lg font-bold text-gray-200">{(stats.monthly_earnings || 0).toLocaleString()} XAF</p>
               </div>
               <div className="bg-black/30 border border-white/5 rounded-xl p-4">
-                <span className="text-xs text-gray-400 block mb-1">Yearly Earnings (1,000 XAF each)</span>
+                <span className="text-xs text-gray-400 block mb-1">Yearly &amp; Book Code Earnings (1,000 XAF each)</span>
                 <p className="text-lg font-bold text-gray-200">{(stats.yearly_earnings || 0).toLocaleString()} XAF</p>
               </div>
               <div className="bg-gradient-to-r from-red-950/60 to-red-900/40 border border-red-700/50 rounded-xl p-4">
