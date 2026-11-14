@@ -1,21 +1,124 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; }
-html, body {
+:root,
+html[data-theme="dark"] {
+  --surface-950: 7 7 15;
+  --surface-900: 15 15 26;
+  --surface-850: 17 17 29;
+  --surface-800: 19 19 31;
+  --surface-750: 23 23 38;
+  --surface-700: 26 26 46;
+  --surface-600: 34 34 58;
+  --surface-500: 45 45 74;
+  --surface-400: 61 61 92;
+  --bg-body: #07070f;
+  --text-body: #e8e8f0;
+  --card-bg: #13131f;
+  --card-border: #1a1a2e;
+  --scrollbar-track: #13131f;
+  --scrollbar-thumb: #3d3d5c;
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --surface-950: 248 250 252;
+  --surface-900: 255 255 255;
+  --surface-850: 241 245 249;
+  --surface-800: 241 245 249;
+  --surface-750: 226 232 240;
+  --surface-700: 226 232 240;
+  --surface-600: 203 213 225;
+  --surface-500: 148 163 184;
+  --surface-400: 100 116 139;
+  --bg-body: #f8fafc;
+  --text-body: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --scrollbar-track: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
   min-height: 100%;
 }
 
 body {
-  background: #07070f;
-  color: #e8e8f0;
-  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-body);
+  color: var(--text-body);
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   padding-bottom: env(safe-area-inset-bottom);
   touch-action: manipulation;
-  font-variant-ligatures: none; /* Disable ligatures like <= or -> */
+  font-variant-ligatures: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Light mode semantic contrast adaptations */
+html[data-theme="light"] .text-white:not(button *):not(a.bg-neb-600):not(a.bg-neb-700):not(a.bg-blue-700):not(a.bg-emerald-600):not(.bg-neb-600):not(.bg-neb-700):not(.bg-emerald-600):not(.bg-green-800):not(.bg-blue-700):not(.bg-red-600):not(.keep-white) {
+  color: #0f172a !important;
+}
+html[data-theme="light"] button.bg-neb-600,
+html[data-theme="light"] button.bg-neb-700,
+html[data-theme="light"] button.bg-emerald-600,
+html[data-theme="light"] button.bg-green-800,
+html[data-theme="light"] button.bg-blue-700,
+html[data-theme="light"] button.bg-red-600,
+html[data-theme="light"] a.bg-neb-600,
+html[data-theme="light"] a.bg-neb-700,
+html[data-theme="light"] a.bg-emerald-600,
+html[data-theme="light"] a.bg-blue-700,
+html[data-theme="light"] .bg-neb-600.text-white,
+html[data-theme="light"] .bg-neb-700.text-white,
+html[data-theme="light"] .bg-emerald-600.text-white,
+html[data-theme="light"] .bg-green-800.text-white,
+html[data-theme="light"] .bg-blue-700.text-white {
+  color: #ffffff !important;
+}
+html[data-theme="light"] .text-gray-200 {
+  color: #1e293b !important;
+}
+html[data-theme="light"] .text-gray-300 {
+  color: #334155 !important;
+}
+html[data-theme="light"] .text-gray-400 {
+  color: #475569 !important;
+}
+html[data-theme="light"] .text-gray-500 {
+  color: #64748b !important;
+}
+html[data-theme="light"] .bg-\[\#090912\],
+html[data-theme="light"] .bg-\[\#07070e\],
+html[data-theme="light"] .bg-\[\#06060c\],
+html[data-theme="light"] .bg-\[\#05050a\],
+html[data-theme="light"] .bg-\[\#040408\],
+html[data-theme="light"] .bg-\[\#0b0b16\] {
+  background-color: #f8fafc !important;
+}
+html[data-theme="light"] .prose-invert {
+  --tw-prose-body: #334155;
+  --tw-prose-headings: #0f172a;
+  --tw-prose-lead: #475569;
+  --tw-prose-links: #8b0a1a;
+  --tw-prose-bold: #0f172a;
+  --tw-prose-counters: #64748b;
+  --tw-prose-bullets: #8b0a1a;
+  --tw-prose-hr: #e2e8f0;
+  --tw-prose-quotes: #334155;
+  --tw-prose-quote-borders: #8b0a1a;
+  --tw-prose-captions: #64748b;
+  --tw-prose-code: #8b0a1a;
+  --tw-prose-pre-code: #e2e8f0;
+  --tw-prose-pre-bg: #0f172a;
+  --tw-prose-th-borders: #cbd5e1;
+  --tw-prose-td-borders: #e2e8f0;
 }
 
 .scroll-container {
@@ -23,7 +126,8 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-button, a {
+button,
+a {
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
@@ -39,41 +143,77 @@ input {
   user-select: text !important;
   -webkit-user-select: text !important;
 }
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #13131f; }
-::-webkit-scrollbar-thumb { background: #3d3d5c; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #8b0a1a; }
+
+/* VS Code style horizontal scrolling when wordWrap is off */
+.cm-nowrap .cm-scroller {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y !important;
+}
+.cm-nowrap .cm-content {
+  white-space: pre !important;
+  min-width: max-content;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8b0a1a;
+}
 
 /* XTerm overrides */
-.xterm { padding: 4px; }
-.xterm-viewport { background: transparent !important; }
+.xterm {
+  padding: 4px;
+}
+.xterm-viewport {
+  background: transparent !important;
+}
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, #e11d48 0%, #8b0a1a 50%, #4d0a11 100%);
+    background: linear-gradient(135deg, #e11d48 0%, #8b0a1a 60%, #700815 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   .card {
-    background: #13131f;
-    border: 1px solid #1a1a2e;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06);
   }
   .card-hover {
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   }
   .card-hover:hover {
     border-color: #8b0a1a60;
-    box-shadow: 0 0 20px #8b0a1a15;
+    box-shadow: 0 4px 20px #8b0a1a15;
   }
-  .neon-border { border-color: #8b0a1a; box-shadow: 0 0 12px #8b0a1a40; }
+  .neon-border {
+    border-color: #8b0a1a;
+    box-shadow: 0 0 12px #8b0a1a40;
+  }
 
   /* Hide scrollbar utility */
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-  
-  /* Beautiful Table Overrides for Markdown */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Table Overrides for Markdown */
   .prose table {
     width: 100%;
     border-collapse: collapse;
@@ -83,22 +223,21 @@ input {
     border-radius: 8px;
   }
   .prose thead {
-    background-color: #1a1a2e;
+    background-color: rgb(var(--surface-700));
     border-bottom: 2px solid #8b0a1a;
   }
   .prose th {
     padding: 12px 16px;
     text-align: left;
     font-weight: 700;
-    color: #e8e8f0;
+    color: var(--text-body);
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
   .prose td {
     padding: 12px 16px;
-    border-bottom: 1px solid #1a1a2e;
-    color: #a0a0b0;
+    border-bottom: 1px solid rgb(var(--surface-700));
     font-size: 0.85rem;
   }
   .prose tbody tr:hover {
@@ -107,31 +246,28 @@ input {
 
   /* Inline code in lesson content and exercise questions */
   .prose code:not(pre code) {
-    background: #13131f;
-    border: 1px solid #1a1a2e;
+    background: rgb(var(--surface-800));
+    border: 1px solid rgb(var(--surface-700));
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 0.85em;
-    color: #ff6666;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    color: #e11d48;
+    font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   }
 
   /* Blockquote — styled tip/note box */
   .prose blockquote {
     border-left: 3px solid #8b0a1a;
-    background: #0f0f1a;
+    background: rgb(var(--surface-900));
     border-radius: 0 8px 8px 0;
     padding: 10px 16px;
     margin: 1em 0;
     font-style: normal !important;
   }
-  .prose blockquote p {
-    color: #a0a0b8 !important;
-    margin: 0;
-  }
 
   /* Smooth list spacing */
-  .prose ul li, .prose ol li {
+  .prose ul li,
+  .prose ol li {
     margin-bottom: 0.35em;
     line-height: 1.75;
   }
@@ -146,6 +282,6 @@ input {
   /* H2 underline accent in lesson content */
   .prose h2 {
     padding-bottom: 0.4em;
-    border-bottom: 1px solid #1a1a2e;
+    border-bottom: 1px solid rgb(var(--surface-700));
   }
 }

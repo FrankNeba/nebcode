@@ -3,50 +3,53 @@ import { MetadataRoute } from 'next';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://nebcode.ngwafrank.com';
 
-  // Base static routes
   const routes = [
     '',
     '/courses',
+    '/mcq',
     '/pricing',
     '/contact',
+    '/ambassador',
     '/auth/login',
     '/auth/register',
   ];
 
-  const staticUrls = routes.map((route) => ({
+  const staticUrls: MetadataRoute.Sitemap = routes.map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
-    changeFrequency: 'daily' as const,
-    priority: route === '' ? 1.0 : 0.8,
+    changeFrequency: route === '' || route === '/courses' || route === '/mcq' ? 'daily' : 'weekly',
+    priority: route === '' ? 1.0 : route === '/courses' || route === '/mcq' ? 0.9 : 0.7,
   }));
 
-  // Fetch courses from the API to generate dynamic sitemap entries
   let courseUrls: MetadataRoute.Sitemap = [];
-  try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8003';
-    // We fetch with a timeout/abort controller or short timeout to avoid blocking builds
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 5000);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://nebcodeback.ngwafrank.com';
 
-    const res = await fetch(`${apiUrl}/api/v1/courses/`, {
-      signal: controller.signal,
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    });
+  for (const endpoint of [apiUrl, 'https://nebcodeback.ngwafrank.com']) {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 5000);
 
-    clearTimeout(id);
+      const res = await fetch(`${endpoint}/api/v1/courses/`, {
+        signal: controller.signal,
+        next: { revalidate: 3600 },
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      const courses = data.results || data || [];
-      courseUrls = courses.map((course: any) => ({
-        url: `${baseUrl}/courses/${course.id}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      }));
+      clearTimeout(id);
+
+      if (res.ok) {
+        const data = await res.json();
+        const courses = data.results || data || [];
+        courseUrls = courses.map((course: any) => ({
+          url: `${baseUrl}/courses/${course.slug || course.id}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.85,
+        }));
+        break;
+      }
+    } catch {
+      // Try fallback endpoint
     }
-  } catch (error) {
-    console.error('Failed to fetch courses for sitemap:', error);
   }
 
   return [...staticUrls, ...courseUrls];

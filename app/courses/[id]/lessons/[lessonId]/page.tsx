@@ -9,8 +9,12 @@ import { ChevronLeft, CheckCircle, Code2, Eye, EyeOff, Play } from 'lucide-react
 import { Lesson } from '@/types';
 import { courseService, executionService, progressService } from '@/services';
 import { OutputConsole } from '@/components/editor/OutputConsole';
-import { CodeEditor } from '@/components/editor/CodeEditor';
 import { useEditorStore } from '@/store/editor.store';
+
+const CodeEditor = dynamic(
+  () => import('@/components/editor/CodeEditor').then((m) => m.CodeEditor),
+  { ssr: false }
+);
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
@@ -134,7 +138,6 @@ export default function LessonPage() {
               language={exercise.exercise_type === 'c' ? 'c' : 'sql'}
               value={code}
               onChange={v => setCode(v || '')}
-              wordWrap={true}
             />
           </div>
           <div className="h-40"><OutputConsole /></div>

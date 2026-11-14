@@ -12,13 +12,20 @@ import 'katex/dist/katex.min.css';
 import { courseService, progressService, executionService } from '@/services';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, Code2, Database, ArrowLeft, ArrowRight, Terminal as TerminalIcon, Play, Info, Zap } from 'lucide-react';
+import { CheckCircle, Code2, Database, ArrowLeft, ArrowRight, Terminal as TerminalIcon, Play, Info, Zap, Eye, EyeOff, Lightbulb, FileText, PenLine } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn, copyToClipboard } from '@/lib/utils';
-import { MySQLEmbeddedTerminal } from '@/components/courses/MySQLEmbeddedTerminal';
-import { CodeEditor } from '@/components/editor/CodeEditor';
 import { useEditorStore } from '@/store/editor.store';
 import { useDeviceOtpStore } from '@/store/device-otp.store';
+
+const MySQLEmbeddedTerminal = dynamic(
+  () => import('@/components/courses/MySQLEmbeddedTerminal').then((m) => m.MySQLEmbeddedTerminal),
+  { ssr: false }
+);
+const CodeEditor = dynamic(
+  () => import('@/components/editor/CodeEditor').then((m) => m.CodeEditor),
+  { ssr: false }
+);
 
 function YouTubeEmbed({ url }: { url: string }) {
   const videoId = url?.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([^&?/]+)/)?.[1];
@@ -536,13 +543,21 @@ function ExercisePanel({
                           <button
                             onClick={() => setShowAnswer(!showAnswer)}
                             className={cn(
-                              "px-2.5 py-1 rounded text-xs transition-all font-semibold",
+                              "px-2.5 py-1 rounded text-xs transition-all font-semibold flex items-center gap-1.5",
                               showAnswer
                                 ? "bg-amber-950/40 border border-amber-800/30 text-amber-400"
                                 : "bg-dark-800 border border-dark-700 text-gray-400 hover:text-white"
                             )}
                           >
-                            {showAnswer ? '👁 Hide Solution' : '💡 Show Solution'}
+                            {showAnswer ? (
+                              <>
+                                <EyeOff className="h-3.5 w-3.5" /> Hide Solution
+                              </>
+                            ) : (
+                              <>
+                                <Lightbulb className="h-3.5 w-3.5 text-amber-400" /> Show Solution
+                              </>
+                            )}
                           </button>
                         )}
                       </div>
@@ -555,7 +570,7 @@ function ExercisePanel({
                   {showAnswer && ex.answer && (
                     <div className="bg-dark-900/60 border border-amber-800/30 rounded-xl p-5 space-y-3">
                       <p className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
-                        <span>💡</span> Expected SQL Solution
+                        <Lightbulb className="h-4 w-4 text-amber-400" /> Expected SQL Solution
                       </p>
                       <pre className="font-mono text-xs text-emerald-300 overflow-x-auto bg-[#05050b] p-4 rounded-lg border border-dark-850 whitespace-pre leading-relaxed">
                         {ex.answer.correct_code}
@@ -582,13 +597,21 @@ function ExercisePanel({
                           <button
                             onClick={() => setShowAnswer(!showAnswer)}
                             className={cn(
-                              "px-2.5 py-1 rounded text-xs transition-all font-semibold",
+                              "px-2.5 py-1 rounded text-xs transition-all font-semibold flex items-center gap-1.5",
                               showAnswer
                                 ? "bg-amber-950/40 border border-amber-800/30 text-amber-400"
                                 : "bg-dark-800 border border-dark-700 text-gray-400 hover:text-white"
                             )}
                           >
-                            {showAnswer ? '👁 Hide Solution' : '💡 Show Solution'}
+                            {showAnswer ? (
+                              <>
+                                <EyeOff className="h-3.5 w-3.5" /> Hide Solution
+                              </>
+                            ) : (
+                              <>
+                                <Lightbulb className="h-3.5 w-3.5 text-amber-400" /> Show Solution
+                              </>
+                            )}
                           </button>
                         )}
                         <button
@@ -610,7 +633,6 @@ function ExercisePanel({
                         language="c"
                         value={code}
                         onChange={v => setCode(v || '')}
-                        wordWrap={true}
                       />
                     </div>
                   </div>
@@ -631,7 +653,7 @@ function ExercisePanel({
                           "font-mono text-xs leading-relaxed break-all whitespace-pre-wrap",
                           output.success ? "text-green-300" : "text-red-400"
                         )}>
-                          {output.stdout || output.stderr || (output.success ? '✓ Execution completed with exit code 0.' : 'An unknown error occurred.')}
+                          {output.stdout || output.stderr || (output.success ? 'Execution completed with exit code 0.' : 'An unknown error occurred.')}
                         </pre>
                       ) : (
                         <p className="text-gray-600 text-xs italic">Click <strong className="text-gray-400">Run</strong> above to compile and execute your code.</p>
@@ -643,7 +665,7 @@ function ExercisePanel({
                   {showAnswer && ex.answer && (
                     <div className="bg-dark-900/60 border border-amber-800/30 rounded-xl p-5 space-y-3">
                       <p className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
-                        <span>💡</span> Expected Solution
+                        <Lightbulb className="h-4 w-4 text-amber-400" /> Expected Solution
                       </p>
                       <pre className="font-mono text-xs text-emerald-300 overflow-x-auto bg-[#05050b] p-4 rounded-lg border border-dark-850 whitespace-pre leading-relaxed">
                         {ex.answer.correct_code}
@@ -690,7 +712,7 @@ function TextExerciseView({
           {/* Header */}
           <div className="px-6 py-4 bg-dark-900 border-b border-dark-800 flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-900/40 to-amber-950/20 border border-amber-800/30 flex items-center justify-center shrink-0">
-              <span className="text-base">📝</span>
+              <FileText className="h-4 w-4 text-amber-400" />
             </div>
             <div>
               <p className="text-[10px] uppercase font-extrabold tracking-widest text-amber-500/80">Theory Question</p>
@@ -718,7 +740,9 @@ function TextExerciseView({
         {/* Answer Text Area */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <span className="w-5 h-5 rounded-md bg-dark-800 border border-dark-700 text-gray-300 flex items-center justify-center text-xs">✏️</span>
+            <span className="w-5 h-5 rounded-md bg-dark-800 border border-dark-700 text-gray-300 flex items-center justify-center">
+              <PenLine className="h-3 w-3 text-neb-400" />
+            </span>
             Your Answer
           </label>
           <textarea
@@ -743,7 +767,15 @@ function TextExerciseView({
                   : "bg-dark-900 border-dark-700 text-gray-300 hover:text-white hover:border-dark-600"
               )}
             >
-              {showAnswer ? '👁 Hide Model Answer' : '💡 Reveal Model Answer'}
+              {showAnswer ? (
+                <>
+                  <EyeOff className="h-4 w-4" /> Hide Model Answer
+                </>
+              ) : (
+                <>
+                  <Lightbulb className="h-4 w-4 text-amber-400" /> Reveal Model Answer
+                </>
+              )}
             </button>
           )}
           <button
@@ -758,7 +790,7 @@ function TextExerciseView({
         {showAnswer && hasAnswer && (
           <div className="bg-dark-900/60 border border-amber-800/30 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="px-5 py-3.5 bg-dark-900 border-b border-dark-800 flex items-center gap-2">
-              <span className="text-sm">💡</span>
+              <Lightbulb className="h-4 w-4 text-amber-400" />
               <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">Model Answer</span>
             </div>
             <div className="p-5 space-y-4">

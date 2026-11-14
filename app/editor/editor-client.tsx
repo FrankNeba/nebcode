@@ -182,7 +182,7 @@ function EditorContent() {
                   language="c"
                   value={activeFile.content}
                   onChange={handleEditorChange}
-                  wordWrap={true}
+                  wordWrap={isMobileMode}
                   onSave={handleSave}
                 />
               </div>

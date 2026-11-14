@@ -26,15 +26,17 @@ const CATEGORIES = [
   { id: 'others', name: 'Other Courses', icon: Layers },
 ];
 
-export default function CoursesPageClient() {
-  const [courses, setCourses] = useState<Course[]>([]);
+export default function CoursesPageClient({ initialCourses = [] }: { initialCourses?: Course[] }) {
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [purchases, setPurchases] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialCourses.length === 0);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    setLoading(true);
+    if (activeTab !== 'all' || courses.length === 0) {
+      setLoading(true);
+    }
     const params = activeTab !== 'all' ? { category: activeTab } : undefined;
     Promise.all([
       courseService.getCourses(params),

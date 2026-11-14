@@ -6,27 +6,26 @@ interface Props {
 }
 
 async function getCourse(id: string) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8003';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://nebcodeback.ngwafrank.com';
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(`${apiUrl}/api/v1/courses/${id}/`, {
       signal: controller.signal,
-      next: { revalidate: 60 },
+      next: { revalidate: 120 },
     });
     clearTimeout(timeout);
     if (res.ok) return await res.json();
   } catch (e) {
-    // If local fetch fails
+    // Fallback below
   }
 
-  // Fallback to production endpoint if local backend not reachable
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(`https://nebcodeback.ngwafrank.com/api/v1/courses/${id}/`, {
       signal: controller.signal,
-      next: { revalidate: 60 },
+      next: { revalidate: 120 },
     });
     clearTimeout(timeout);
     if (res.ok) return await res.json();
@@ -38,8 +37,10 @@ async function getCourse(id: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const course = await getCourse(params.id);
   const baseUrl = 'https://nebcode.ngwafrank.com';
-  const title = course?.title ? `${course.title} | Nebcode` : 'Course Details | Nebcode';
-  const description = course?.description || 'Interactive hands-on programming with live sandbox terminals, MySQL containers, and verified certificates.';
+  const title = course?.title ? `${course.title} — GCE Computer Science Course` : 'Course Details | Nebcode';
+  const description =
+    course?.description ||
+    'Interactive hands-on C Programming and MySQL course for secondary school students with live compiler labs and exercises.';
   const shareSlug = course?.slug || params.id;
   const canonicalUrl = `${baseUrl}/courses/${shareSlug}`;
 
@@ -80,6 +81,37 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function CourseDetailPage({ params }: Props) {
-  return <CourseDetailClient id={params.id} />;
+export default async function CourseDetailPage({ params }: Props) {
+  const course = await getCourse(params.id);
+  const baseUrl = 'https://nebcode.ngwafrank.com';
+  const shareSlug = course?.slug || params.id;
+
+  const jsonLd = course
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Course',
+        name: course.title,
+        description: course.description,
+        url: `${baseUrl}/courses/${shareSlug}`,
+        provider: {
+          '@type': 'EducationalOrganization',
+          name: 'Nebcode',
+          sameAs: baseUrl,
+        },
+        educationalLevel: 'Secondary School / GCE O-Level & A-Level',
+        inLanguage: 'en',
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <CourseDetailClient id={params.id} initialCourse={course} />
+    </>
+  );
 }

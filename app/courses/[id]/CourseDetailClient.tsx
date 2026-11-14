@@ -28,15 +28,18 @@ import toast from 'react-hot-toast';
 
 interface CourseDetailClientProps {
   id: string;
+  initialCourse?: any;
 }
 
-export default function CourseDetailClient({ id }: CourseDetailClientProps) {
+export default function CourseDetailClient({ id, initialCourse }: CourseDetailClientProps) {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [course, setCourse] = useState<any>(null);
+  const [course, setCourse] = useState<any>(initialCourse || null);
   const [progress, setProgress] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expandedModules, setExpandedModules] = useState<string[]>([]);
+  const [loading, setLoading] = useState(!initialCourse);
+  const [expandedModules, setExpandedModules] = useState<string[]>(
+    initialCourse?.modules?.[0]?.id ? [initialCourse.modules[0].id] : []
+  );
   const [copied, setCopied] = useState(false);
   const [mobileTab, setMobileTab] = useState<'curriculum' | 'overview'>('curriculum');
 
@@ -48,11 +51,13 @@ export default function CourseDetailClient({ id }: CourseDetailClientProps) {
       setCourse(cRes.data);
       setProgress(pRes.data?.completed_lessons || []);
       if (cRes.data?.modules?.length > 0) {
-        setExpandedModules([cRes.data.modules[0].id]);
+        setExpandedModules((prev) => (prev.length > 0 ? prev : [cRes.data.modules[0].id]));
       }
-    }).catch(() => toast.error('Failed to load course'))
+    }).catch(() => {
+      if (!initialCourse) toast.error('Failed to load course');
+    })
     .finally(() => setLoading(false));
-  }, [id, user]);
+  }, [id, user, initialCourse]);
 
   const totalLessons = course?.modules?.reduce((acc: number, m: any) => acc + m.lessons.length, 0) || 0;
   const completedCount = progress.length;
@@ -92,7 +97,7 @@ export default function CourseDetailClient({ id }: CourseDetailClientProps) {
   const handleLessonClick = (e: React.MouseEvent, lesson: any) => {
     if (!user) {
       e.preventDefault();
-      toast('Please log in or register to take this course', { icon: '🔒' });
+      toast.error('Please sign in or create a free account to start this lesson.');
       const targetUrl = `/courses/${courseIdentifier}/lesson/${lesson.id}`;
       router.push(`/auth/login?redirect=${encodeURIComponent(targetUrl)}`);
       return;
@@ -111,7 +116,7 @@ export default function CourseDetailClient({ id }: CourseDetailClientProps) {
     }
 
     if (!user) {
-      toast('Please log in or register to take this course', { icon: '🔒' });
+      toast.error('Please sign in or create a free account to start learning.');
       const targetUrl = `/courses/${courseIdentifier}/lesson/${firstLesson.id}`;
       router.push(`/auth/login?redirect=${encodeURIComponent(targetUrl)}`);
       return;

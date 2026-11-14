@@ -115,9 +115,23 @@ export function RunBar({ showAnswerToggle, lessonId, isSidebarOpen, onToggleSide
         <Download className="h-3.5 w-3.5" />
       </Button>
       <div className="h-4 w-px bg-dark-700 mx-1 hidden md:block" />
-      <Button onClick={() => setMobileMode(!isMobileMode)} variant="ghost" size="sm" className="gap-1.5 ml-auto md:ml-0" title={isMobileMode ? 'Switch to Desktop View' : 'Switch to Mobile View'}>
-        {isMobileMode ? <Monitor className="h-3.5 w-3.5" /> : <Smartphone className="h-3.5 w-3.5" />}
-        <span className="hidden sm:inline">{isMobileMode ? 'Desktop View' : 'Mobile View'}</span>
+      <Button
+        onClick={() => {
+          const next = !isMobileMode;
+          setMobileMode(next);
+          toast.success(
+            next
+              ? 'Mobile Mode: Line wrapping enabled'
+              : 'Desktop Mode: Horizontal scroll enabled (VS Code style)'
+          );
+        }}
+        variant="ghost"
+        size="sm"
+        className="gap-1.5 ml-auto md:ml-0 border border-dark-700"
+        title={isMobileMode ? 'Switch to Desktop Mode (No line wrap, swipe horizontally like VS Code)' : 'Switch to Mobile Mode (Wrap lines)'}
+      >
+        {isMobileMode ? <Monitor className="h-3.5 w-3.5 text-neb-400" /> : <Smartphone className="h-3.5 w-3.5 text-neb-400" />}
+        <span className="text-xs">{isMobileMode ? 'Switch to Desktop' : 'Switch to Mobile'}</span>
       </Button>
       {showAnswerToggle && (
         <Button onClick={toggleAnswer} variant={showAnswer ? 'danger' : 'ghost'} size="sm">

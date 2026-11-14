@@ -624,8 +624,8 @@ export function AdminMCQManager() {
                     <p className="text-xs font-bold text-white">
                       JSON Validated — {parsedPreview.questionCount} Questions Ready
                       {parsedPreview.questionCount === 50 && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 text-[10px]">
-                          ✓ Standard 50 Questions
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 text-[10px]">
+                          <CheckCircle2 className="h-3 w-3" /> Standard 50 Questions
                         </span>
                       )}
                     </p>
