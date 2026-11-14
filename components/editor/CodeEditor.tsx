@@ -1,0 +1,377 @@
+'use client';
+import { useRef, useState, useMemo, useCallback } from 'react';
+import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { cpp } from '@codemirror/lang-cpp';
+import { sql } from '@codemirror/lang-sql';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { EditorView, keymap } from '@codemirror/view';
+import { undo, redo } from '@codemirror/commands';
+import { Copy, ClipboardPaste, Check, RotateCcw, RotateCw, CheckSquare, X, Sparkles } from 'lucide-react';
+import { copyToClipboard, cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
+
+interface CodeEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  language?: 'c' | 'cpp' | 'sql' | string;
+  height?: string;
+  wordWrap?: boolean;
+  onSave?: () => void;
+  className?: string;
+  showQuickBar?: boolean;
+}
+
+const MOBILE_SYMBOLS_C = ['Tab', '{', '}', '(', ')', '[', ']', ';', '"', "'", '#', '<', '>', '=', '&', '|', '!', '+', '-', '*', '/', '%', '\\n'];
+const MOBILE_SYMBOLS_SQL = ['SELECT ', 'FROM ', 'WHERE ', '*', ';', "'", '"', '(', ')', '=', '<', '>', 'JOIN ', 'GROUP BY ', 'ORDER BY '];
+
+export function CodeEditor({
+  value,
+  onChange,
+  language = 'c',
+  height = '100%',
+  wordWrap = true,
+  onSave,
+  className,
+  showQuickBar = true,
+}: CodeEditorProps) {
+  const editorRef = useRef<ReactCodeMirrorRef>(null);
+  const [copied, setCopied] = useState(false);
+  const [pasteModalOpen, setPasteModalOpen] = useState(false);
+  const [pasteBuffer, setPasteBuffer] = useState('');
+
+  const insertTextAtCursor = useCallback((textToInsert: string) => {
+    const view = editorRef.current?.view;
+    if (view) {
+      const { state } = view;
+      const range = state.selection.main;
+      view.dispatch({
+        changes: { from: range.from, to: range.to, insert: textToInsert },
+        selection: { anchor: range.from + textToInsert.length },
+      });
+      view.focus();
+    } else {
+      onChange((value || '') + textToInsert);
+    }
+  }, [onChange, value]);
+
+  const handleCopy = async () => {
+    const view = editorRef.current?.view;
+    let textToCopy = value || '';
+    let isSelection = false;
+
+    if (view) {
+      const { from, to } = view.state.selection.main;
+      if (to > from) {
+        textToCopy = view.state.sliceDoc(from, to);
+        isSelection = true;
+      }
+    }
+
+    if (!textToCopy) {
+      toast.error('Nothing to copy');
+      return;
+    }
+
+    const ok = await copyToClipboard(textToCopy);
+    if (ok) {
+      setCopied(true);
+      toast.success(isSelection ? 'Selected code copied!' : 'All code copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error('Failed to copy code');
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.readText) {
+        const clipText = await navigator.clipboard.readText();
+        if (clipText) {
+          insertTextAtCursor(clipText);
+          toast.success('Pasted from clipboard!');
+          return;
+        }
+      }
+    } catch {
+      // Browser requires manual paste gesture on mobile — open quick paste box
+    }
+    setPasteBuffer('');
+    setPasteModalOpen(true);
+  };
+
+  const handleSelectAll = () => {
+    const view = editorRef.current?.view;
+    if (view) {
+      view.dispatch({
+        selection: { anchor: 0, head: view.state.doc.length },
+      });
+      view.focus();
+      toast.success('All code selected');
+    }
+  };
+
+  const handleUndo = () => {
+    const view = editorRef.current?.view;
+    if (view) {
+      undo(view);
+      view.focus();
+    }
+  };
+
+  const handleRedo = () => {
+    const view = editorRef.current?.view;
+    if (view) {
+      redo(view);
+      view.focus();
+    }
+  };
+
+  const handleSymbolTap = (sym: string) => {
+    if (sym === 'Tab') {
+      insertTextAtCursor('    ');
+    } else {
+      insertTextAtCursor(sym);
+    }
+  };
+
+  const extensions = useMemo(() => {
+    const exts: any[] = [
+      language === 'sql' ? sql() : cpp(),
+      EditorView.contentAttributes.of({
+        autocorrect: 'off',
+        autocapitalize: 'off',
+        spellcheck: 'false',
+        style: 'user-select: text; -webkit-user-select: text;',
+      }),
+      EditorView.theme({
+        '&': {
+          height: '100%',
+          fontSize: '13.5px',
+          backgroundColor: '#090912',
+        },
+        '.cm-scroller': {
+          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+          lineHeight: '1.6',
+          overflow: 'auto',
+        },
+        '.cm-content': {
+          padding: '12px 0',
+          caretColor: '#e11d48',
+        },
+        '.cm-gutters': {
+          backgroundColor: '#07070e',
+          color: '#4b5563',
+          borderRight: '1px solid #1a1a2e',
+        },
+        '.cm-activeLine': {
+          backgroundColor: 'rgba(225, 29, 72, 0.06)',
+        },
+        '.cm-activeLineGutter': {
+          backgroundColor: 'rgba(225, 29, 72, 0.12)',
+          color: '#f43f5e',
+        },
+        '.cm-selectionBackground, ::selection': {
+          backgroundColor: 'rgba(225, 29, 72, 0.3) !important',
+        },
+      }),
+    ];
+
+    if (wordWrap) {
+      exts.push(EditorView.lineWrapping);
+    }
+
+    if (onSave) {
+      exts.push(
+        keymap.of([
+          {
+            key: 'Mod-s',
+            run: () => {
+              onSave();
+              return true;
+            },
+          },
+        ])
+      );
+    }
+
+    return exts;
+  }, [language, wordWrap, onSave]);
+
+  const symbols = language === 'sql' ? MOBILE_SYMBOLS_SQL : MOBILE_SYMBOLS_C;
+
+  return (
+    <div className={cn('flex flex-col h-full w-full overflow-hidden bg-[#090912]', className)}>
+      {showQuickBar && (
+        <div className="flex flex-col bg-dark-900 border-b border-dark-800 shrink-0">
+          {/* Copy / Paste / Undo / Redo Action Bar */}
+          <div className="flex items-center justify-between px-2.5 py-1.5 gap-1.5 overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-200 text-[11px] font-semibold transition active:scale-95 whitespace-nowrap"
+                title="Copy selected code or all code"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-neb-400" />}
+                <span>{copied ? 'Copied!' : 'Copy Code'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePaste}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-200 text-[11px] font-semibold transition active:scale-95 whitespace-nowrap"
+                title="Paste code at cursor"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Paste</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-300 text-[11px] font-medium transition active:scale-95 whitespace-nowrap"
+                title="Select all code"
+              >
+                <CheckSquare className="h-3 w-3 text-gray-400" />
+                <span>Select All</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleUndo}
+                className="p-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-300 transition active:scale-95"
+                title="Undo"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleRedo}
+                className="p-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-300 transition active:scale-95"
+                title="Redo"
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Quick Symbol Bar */}
+          <div className="flex items-center gap-1 px-2 py-1 bg-[#0b0b16] border-t border-dark-800/80 overflow-x-auto scrollbar-hide">
+            {symbols.map((sym) => (
+              <button
+                key={sym}
+                type="button"
+                onClick={() => handleSymbolTap(sym)}
+                className="px-2 py-1 rounded bg-dark-800/90 hover:bg-neb-900/50 active:bg-neb-700 text-gray-200 font-mono text-xs font-semibold border border-dark-700/70 shrink-0 transition active:scale-95"
+              >
+                {sym.trim() === '' ? 'Tab' : sym}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Paste Fallback Box (when browser blocks direct clipboard read) */}
+      {pasteModalOpen && (
+        <div className="p-3 bg-dark-900 border-b border-neb-700/50 flex flex-col gap-2 animate-in fade-in duration-200 shrink-0">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+              <ClipboardPaste className="h-3.5 w-3.5 text-neb-400" />
+              Long-press inside the box below to paste from your phone:
+            </span>
+            <button
+              type="button"
+              onClick={() => setPasteModalOpen(false)}
+              className="p-1 text-gray-400 hover:text-white rounded"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <textarea
+            value={pasteBuffer}
+            onChange={(e) => setPasteBuffer(e.target.value)}
+            placeholder="Long-press here and tap Paste..."
+            rows={3}
+            autoFocus
+            className="w-full bg-dark-950 border border-dark-700 rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-neb-500"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setPasteModalOpen(false)}
+              className="px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white border border-dark-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!pasteBuffer}
+              onClick={() => {
+                onChange(pasteBuffer);
+                setPasteModalOpen(false);
+                toast.success('Replaced editor code!');
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-dark-800 hover:bg-dark-700 text-gray-200 border border-dark-600 disabled:opacity-40"
+            >
+              Replace All
+            </button>
+            <button
+              type="button"
+              disabled={!pasteBuffer}
+              onClick={() => {
+                insertTextAtCursor(pasteBuffer);
+                setPasteModalOpen(false);
+                toast.success('Inserted at cursor!');
+              }}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-neb-600 hover:bg-neb-500 text-white disabled:opacity-40"
+            >
+              Insert at Cursor
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* CodeMirror 6 Editor */}
+      <div className="flex-1 overflow-auto min-h-0 relative select-text">
+        <CodeMirror
+          ref={editorRef}
+          value={value}
+          height={height}
+          theme={oneDark}
+          extensions={extensions}
+          onChange={(val) => onChange(val)}
+          basicSetup={{
+            lineNumbers: true,
+            highlightActiveLineGutter: true,
+            highlightSpecialChars: true,
+            history: true,
+            foldGutter: false,
+            drawSelection: true,
+            dropCursor: true,
+            allowMultipleSelections: true,
+            indentOnInput: true,
+            syntaxHighlighting: true,
+            bracketMatching: true,
+            closeBrackets: true,
+            autocompletion: true,
+            rectangularSelection: true,
+            crosshairCursor: false,
+            highlightActiveLine: true,
+            highlightSelectionMatches: true,
+            closeBracketsKeymap: true,
+            defaultKeymap: true,
+            searchKeymap: true,
+            historyKeymap: true,
+            foldKeymap: false,
+            completionKeymap: true,
+            lintKeymap: true,
+            tabSize: 4,
+          }}
+          className="h-full text-sm select-text"
+        />
+      </div>
+    </div>
+  );
+}

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
-import { Code2, BookOpen, LayoutDashboard, LogOut, Menu, X, Terminal, ChevronDown, Bell } from 'lucide-react';
+import { Code2, BookOpen, LayoutDashboard, LogOut, Menu, X, Terminal, ChevronDown, Bell, FileCheck2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services';
 import { Button } from '@/components/ui/Button';
@@ -68,6 +68,9 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-1">
           <Link href="/courses" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-dark-700 transition-all">
             <BookOpen className="h-4 w-4" /> Courses
+          </Link>
+          <Link href="/mcq" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-dark-700 transition-all">
+            <FileCheck2 className="h-4 w-4 text-neb-400" /> MCQ Papers
           </Link>
           <Link href="/pricing" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-dark-700 transition-all">
             Pricing
@@ -221,6 +224,9 @@ export function Navbar() {
           <div className="px-4 py-3 flex flex-col gap-1">
             <Link href="/courses" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-700 text-sm" onClick={() => setOpen(false)}>
               <BookOpen className="h-4 w-4" /> Courses
+            </Link>
+            <Link href="/mcq" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-700 text-sm" onClick={() => setOpen(false)}>
+              <FileCheck2 className="h-4 w-4 text-neb-400" /> MCQ Papers
             </Link>
             <Link href="/pricing" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-700 text-sm" onClick={() => setOpen(false)}>
               Pricing

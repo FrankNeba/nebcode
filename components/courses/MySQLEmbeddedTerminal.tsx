@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useRef } from 'react';
-import { Terminal, RefreshCw, X, Play } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useEffect, useRef, useState } from 'react';
+import { Terminal, RefreshCw, X, Play, Copy, Check, ClipboardPaste } from 'lucide-react';
+import { cn, copyToClipboard } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { useMySQLLabStore } from '@/store/mysql-lab.store';
-import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import toast from 'react-hot-toast';
 
 interface MySQLEmbeddedTerminalProps {
   onClose?: () => void;
@@ -16,6 +16,7 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
   const { isAuthenticated } = useAuthStore();
   const termRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const {
     connected,
@@ -51,6 +52,36 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
     }
   };
 
+  const handleCopy = async (text: string, id: string) => {
+    const clean = text.replace(/^mysql>\s*/i, '').trim();
+    const ok = await copyToClipboard(clean);
+    if (ok) {
+      setCopiedId(id);
+      toast.success('Command copied!');
+      setTimeout(() => setCopiedId(prev => (prev === id ? null : prev)), 2000);
+    } else {
+      toast.error('Failed to copy');
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setInput((input ? input + ' ' : '') + text);
+          inputRef.current?.focus();
+          toast.success('Pasted!');
+          return;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    toast('Long-press inside the input box to paste');
+    inputRef.current?.focus();
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#06060c] border border-dark-800 rounded-xl overflow-hidden shadow-2xl animate-in slide-in-from-right-4 duration-500">
       {/* Header */}
@@ -64,6 +95,7 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
         </div>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             onClick={connected ? disconnect : connect}
             disabled={connecting}
             className="p-1 text-gray-500 hover:text-white rounded transition"
@@ -72,7 +104,7 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
             <RefreshCw className={cn("h-3.5 w-3.5", connecting && "animate-spin")} />
           </button>
           {onClose && (
-            <button onClick={onClose} className="p-1 text-gray-500 hover:text-white rounded transition">
+            <button type="button" onClick={onClose} className="p-1 text-gray-500 hover:text-white rounded transition">
               <X className="h-3.5 w-3.5" />
             </button>
           )}
@@ -82,7 +114,6 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
       {/* Terminal Output */}
       <div
         ref={termRef}
-        onClick={() => inputRef.current?.focus()}
         className="flex-1 overflow-y-auto p-3 font-mono text-[11px] md:text-xs leading-normal select-text space-y-1.5"
       >
         {lines.length === 0 && !connected && (
@@ -90,21 +121,38 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
             {isAuthenticated ? 'Connecting database sandbox container...' : 'Sign in to use the MySQL terminal.'}
           </div>
         )}
-        {lines.map((line, i) => (
-          <div key={i} className={cn(
-            "mb-0.5",
-            line.type === 'input' ? 'text-green-400 font-semibold' :
-              line.type === 'error' ? 'text-red-400 font-medium' :
-                line.type === 'system' ? 'text-yellow-500/80 italic text-[10px]' :
-                  'text-green-300'
-          )}>
-            <pre className="whitespace-pre-wrap break-all font-mono leading-normal">
-              {line.type === 'input'
-                ? (line.text.startsWith('mysql>') ? line.text : `mysql> ${line.text}`)
-                : line.text.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\s*->\s*/gm, '')}
-            </pre>
-          </div>
-        ))}
+        {lines.map((line, i) => {
+          const lineId = `emb-line-${i}`;
+          const isInput = line.type === 'input';
+          return (
+            <div
+              key={i}
+              className={cn(
+                "mb-0.5 flex items-start justify-between gap-2 rounded px-2 py-1",
+                isInput ? 'bg-emerald-950/20 border border-emerald-900/30 text-green-400 font-semibold' :
+                  line.type === 'error' ? 'text-red-400 font-medium' :
+                    line.type === 'system' ? 'text-yellow-500/80 italic text-[10px]' :
+                      'text-green-300'
+              )}
+            >
+              <pre className="whitespace-pre-wrap break-all font-mono leading-normal select-text flex-1">
+                {isInput
+                  ? (line.text.startsWith('mysql>') ? line.text : `mysql> ${line.text}`)
+                  : line.text.replace(/\x1b\[[0-9;]*m/g, '').replace(/^\s*->\s*/gm, '')}
+              </pre>
+              {(isInput || line.type === 'output') && (
+                <button
+                  type="button"
+                  onClick={() => handleCopy(line.text, lineId)}
+                  className="p-1 rounded bg-dark-800 hover:bg-dark-700 text-gray-300 border border-dark-700 shrink-0 active:scale-95"
+                  title="Copy command"
+                >
+                  {copiedId === lineId ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3 text-neb-400" />}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Input Form */}
@@ -127,16 +175,37 @@ export function MySQLEmbeddedTerminal({ onClose, title = 'MySQL Lab Session' }: 
                 onExecute();
               }
             }}
-            placeholder={connected ? "Type SQL statement..." : "Connecting..."}
+            placeholder={connected ? "Type or paste SQL statement..." : "Connecting..."}
             disabled={!connected}
-            className="flex-1 bg-transparent font-mono text-[11px] md:text-xs text-white placeholder-gray-700 outline-none caret-neb-400 resize-none min-h-[20px] max-h-[80px]"
+            className="flex-1 bg-transparent font-mono text-[11px] md:text-xs text-white placeholder-gray-700 outline-none caret-neb-400 resize-none min-h-[20px] max-h-[80px] select-text"
             spellCheck={false}
             rows={1}
           />
+          {input.trim() && (
+            <button
+              type="button"
+              onClick={() => handleCopy(input, 'emb-input')}
+              className="p-1 text-gray-400 hover:text-white transition"
+              title="Copy current command"
+            >
+              {copiedId === 'emb-input' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+          )}
           <button
+            type="button"
+            onClick={handlePaste}
+            disabled={!connected}
+            className="p-1 text-gray-400 hover:text-white disabled:opacity-25 transition"
+            title="Paste command"
+          >
+            <ClipboardPaste className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
             onClick={onExecute}
             disabled={!connected || !input.trim()}
             className="p-1 text-neb-500 hover:text-neb-400 disabled:opacity-25 transition"
+            title="Run SQL"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
           </button>

@@ -48,6 +48,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { courseService, authService, paymentService } from '@/services';
 import { Button } from '@/components/ui/Button';
+import { AdminMCQManager } from '@/components/mcq/AdminMCQManager';
 import rehypeRaw from 'rehype-raw';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -55,7 +56,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
-type Tab = 'uploader' | 'courses' | 'users' | 'content' | 'referrals' | 'access-codes';
+type Tab = 'uploader' | 'courses' | 'mcq' | 'users' | 'content' | 'referrals' | 'access-codes';
 
 export default function CourseAdminPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
@@ -762,6 +763,14 @@ export default function CourseAdminPage() {
               <BookOpen className="h-3.5 w-3.5" /> Courses
             </button>
             <button
+              onClick={() => setActiveTab('mcq')}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                activeTab === 'mcq' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <FileText className="h-3.5 w-3.5" /> MCQ Papers
+            </button>
+            <button
               onClick={() => setActiveTab('users')}
               className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeTab === 'users' ? 'bg-neb-600 text-white shadow-md' : 'text-gray-400 hover:text-white'
@@ -813,6 +822,9 @@ export default function CourseAdminPage() {
 
       {/* Main Tab Views */}
       <div className="animate-in fade-in duration-300">
+
+        {/* MCQ PAPERS TAB */}
+        {activeTab === 'mcq' && <AdminMCQManager />}
         
         {/* COURSES TAB */}
         {activeTab === 'courses' && (

@@ -14,12 +14,11 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { CheckCircle, Code2, Database, ArrowLeft, ArrowRight, Terminal as TerminalIcon, Play, Info, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard } from '@/lib/utils';
 import { MySQLEmbeddedTerminal } from '@/components/courses/MySQLEmbeddedTerminal';
+import { CodeEditor } from '@/components/editor/CodeEditor';
 import { useEditorStore } from '@/store/editor.store';
 import { useDeviceOtpStore } from '@/store/device-otp.store';
-
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
 function YouTubeEmbed({ url }: { url: string }) {
   const videoId = url?.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([^&?/]+)/)?.[1];
@@ -96,8 +95,7 @@ export default function LessonPage() {
       const match = /language-(\w+)/.exec(className || '');
       const lang = match ? match[1] : '';
       if (!inline && lang) {
-        // const codeString = String(children).replace(/\n$/, '');
-        const codeString = " "
+        const codeString = String(children).replace(/\n$/, '');
         return (
           <div className="my-5 rounded-xl border border-dark-800 bg-[#06060c] overflow-hidden shadow-2xl">
             <div className="px-4 py-2 bg-dark-900 border-b border-dark-800 flex items-center justify-between">
@@ -106,12 +104,12 @@ export default function LessonPage() {
               </span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    const code = String(children).replace(/\\n$/, '');
-                    navigator.clipboard.writeText(code);
-                    toast.success('Copied to clipboard!');
+                  onClick={async () => {
+                    const ok = await copyToClipboard(codeString);
+                    if (ok) toast.success('Copied to clipboard!');
+                    else toast.error('Failed to copy');
                   }}
-                  className="text-[10px] text-gray-500 hover:text-white transition-all bg-dark-950 px-2 py-1 rounded border border-dark-800 font-sans"
+                  className="text-[10px] text-gray-400 hover:text-white transition-all bg-dark-950 px-2.5 py-1 rounded border border-dark-800 font-sans font-semibold active:scale-95"
                 >
                   Copy
                 </button>
@@ -196,10 +194,17 @@ export default function LessonPage() {
 
               {/* Primary content */}
               {lesson.content && (
-                <div className="prose prose-invert prose-sm max-w-none leading-relaxed
-                  prose-headings:text-white prose-headings:font-bold
-                  prose-blockquote:border-l-neb-600 prose-blockquote:text-gray-400
-                  prose-a:text-neb-400 prose-a:no-underline hover:prose-a:underline">
+                <div className="prose prose-invert prose-sm md:prose-base max-w-none leading-relaxed
+                  prose-headings:text-white prose-headings:font-bold prose-headings:tracking-tight
+                  prose-h1:text-2xl prose-h1:mt-8 prose-h1:mb-4
+                  prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h2:border-b prose-h2:border-dark-800 prose-h2:pb-2
+                  prose-h3:text-lg prose-h3:mt-5 prose-h3:mb-2
+                  prose-p:text-gray-300 prose-p:leading-[1.8]
+                  prose-blockquote:border-l-neb-600 prose-blockquote:text-gray-400 prose-blockquote:bg-dark-900/50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic
+                  prose-a:text-neb-400 prose-a:no-underline hover:prose-a:underline
+                  prose-strong:text-white prose-strong:font-semibold
+                  prose-ul:text-gray-300 prose-li:marker:text-neb-500 prose-li:leading-[1.7]
+                  prose-ol:text-gray-300">
                   <ReactMarkdown
                     remarkPlugins={[remarkMath, remarkGfm]}
                     rehypePlugins={[rehypeKatex, rehypeRaw as any]}
@@ -299,6 +304,7 @@ function ExercisePanel({
   const [activeExercise, setActiveExercise] = useState(0);
   const ex = lesson.exercises?.[activeExercise];
   const isMySQL = ex?.exercise_type === 'mysql';
+  const isText = ex?.exercise_type === 'text' || (ex?.exercise_type && ex.exercise_type !== 'c' && ex.exercise_type !== 'mysql');
 
   const [viewMode, setViewMode] = useState<'launcher' | 'split'>('launcher');
   const [showAnswer, setShowAnswer] = useState(false);
@@ -340,12 +346,17 @@ function ExercisePanel({
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-350 overflow-hidden">
       {lesson.exercises.length > 1 && (
-        <div className="flex gap-2 px-4 py-2.5 border-b border-dark-800 bg-dark-900 shrink-0">
+        <div className="flex gap-2 px-4 py-2.5 border-b border-dark-800 bg-dark-900 shrink-0 overflow-x-auto scrollbar-hide">
           {lesson.exercises.map((_: any, i: number) => (
             <button
               key={i}
               onClick={() => setActiveExercise(i)}
-              className={cn("px-3 py-1 rounded-lg text-xs font-semibold transition", i === activeExercise ? "bg-neb-700 text-white" : "bg-dark-800 text-gray-400 hover:bg-dark-750")}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap",
+                i === activeExercise
+                  ? "bg-neb-700 text-white shadow-md shadow-neb-950/30"
+                  : "bg-dark-800 text-gray-400 hover:bg-dark-700 hover:text-gray-200"
+              )}
             >
               Exercise {i + 1}
             </button>
@@ -355,206 +366,296 @@ function ExercisePanel({
 
       {ex && (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {viewMode === 'launcher' ? (
+          {/* ─── TEXT / THEORY EXERCISE ─── */}
+          {isText ? (
+            <TextExerciseView
+              ex={ex}
+              onComplete={onComplete}
+              showAnswer={showAnswer}
+              setShowAnswer={setShowAnswer}
+            />
+          ) : viewMode === 'launcher' ? (
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               {/* Question Panel */}
-              <div className="w-full md:w-80 flex-shrink-0 p-5 border-r border-dark-800 overflow-y-auto bg-[#090910] text-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  {isMySQL ? <Database className="h-4 w-4 text-blue-400" /> : <Code2 className="h-4 w-4 text-neb-400" />}
-                  <span className="text-xs font-extrabold uppercase text-gray-400">{isMySQL ? 'MySQL Statement' : 'C Language'}</span>
+              <div className="w-full md:w-[340px] flex-shrink-0 overflow-y-auto bg-[#07070e] border-r border-dark-800">
+                {/* Question Header */}
+                <div className="px-5 py-4 border-b border-dark-800 bg-dark-900/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn(
+                      "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                      isMySQL ? "bg-blue-900/40 border border-blue-800/30" : "bg-neb-900/40 border border-neb-800/30"
+                    )}>
+                      {isMySQL ? <Database className="h-3.5 w-3.5 text-blue-400" /> : <Code2 className="h-3.5 w-3.5 text-neb-400" />}
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-extrabold tracking-widest text-gray-500">
+                        {isMySQL ? 'MySQL Exercise' : 'C Language Exercise'}
+                      </p>
+                      <p className="text-xs font-bold text-white mt-0.5">Read the task below</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="prose prose-invert prose-sm max-w-none leading-relaxed">
-                  <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
-                    {ex.question}
-                  </ReactMarkdown>
+
+                {/* Question Content */}
+                <div className="p-5">
+                  <div className="prose prose-invert prose-sm max-w-none leading-relaxed
+                    prose-headings:text-white prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2
+                    prose-p:text-gray-300 prose-p:leading-relaxed
+                    prose-strong:text-white prose-strong:font-bold
+                    prose-code:text-neb-400 prose-code:bg-dark-800 prose-code:px-1 prose-code:rounded prose-code:text-xs
+                    prose-blockquote:border-l-neb-600 prose-blockquote:text-gray-400 prose-blockquote:bg-dark-900/50 prose-blockquote:py-1 prose-blockquote:pr-3 prose-blockquote:rounded-r-lg
+                    prose-ul:text-gray-300 prose-li:marker:text-neb-500
+                    prose-ol:text-gray-300">
+                    <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                      {ex.question}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
 
               {/* Lab Launcher */}
-              <div className="flex-1 flex items-center justify-center flex-col gap-5 p-8 text-center bg-[#05050a]/40">
-                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl", isMySQL ? "bg-blue-900/20 border border-blue-800/20" : "bg-neb-900/20 border border-neb-800/20")}>
-                  {isMySQL ? <Database className="h-8 w-8 text-blue-400" /> : <Code2 className="h-8 w-8 text-neb-400" />}
+              <div className="flex-1 flex items-center justify-center flex-col gap-6 p-8 text-center bg-[#05050a]">
+                {/* Icon */}
+                <div className={cn(
+                  "w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl",
+                  isMySQL
+                    ? "bg-gradient-to-br from-blue-900/40 to-blue-950/20 border border-blue-800/30"
+                    : "bg-gradient-to-br from-neb-900/40 to-neb-950/20 border border-neb-800/30"
+                )}>
+                  {isMySQL
+                    ? <Database className="h-9 w-9 text-blue-400" />
+                    : <Code2 className="h-9 w-9 text-neb-400" />}
                 </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-white">Execute in Sandboxed Lab</h3>
-                  <p className="text-gray-400 text-xs mt-2 max-w-xs mx-auto leading-relaxed">
-                    We have prepared a secure container sandbox environment with your starter code template loaded.
+
+                {/* Text */}
+                <div className="max-w-xs">
+                  <h3 className="text-xl font-extrabold text-white">Ready to Code?</h3>
+                  <p className="text-gray-400 text-sm mt-2 leading-relaxed">
+                    Choose how you want to work on this exercise. Your starter code will be pre-loaded.
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2.5 w-full max-w-xs">
+                {/* Action buttons */}
+                <div className="flex flex-col gap-3 w-full max-w-xs">
                   <Link
-                    href={isMySQL ? `/mysql-lab?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}` : `/editor?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}`}
-                    className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 bg-neb-600 hover:bg-neb-500 text-white transition-all active:scale-95 shadow-lg shadow-neb-950/20 text-xs"
+                    href={isMySQL
+                      ? `/mysql-lab?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}`
+                      : `/editor?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}`
+                    }
+                    className={cn(
+                      "w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all active:scale-95 shadow-lg text-sm",
+                      isMySQL
+                        ? "bg-blue-700 hover:bg-blue-600 text-white shadow-blue-950/30"
+                        : "bg-neb-600 hover:bg-neb-500 text-white shadow-neb-950/30"
+                    )}
                   >
                     {isMySQL ? <Database className="h-4 w-4" /> : <Code2 className="h-4 w-4" />}
-                    Launch Full-screen Sandbox
+                    Open Full-Screen Lab
                   </Link>
 
                   <button
                     onClick={() => setViewMode('split')}
-                    className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 bg-dark-900 border border-dark-800 hover:bg-dark-800 text-gray-300 hover:text-white transition-all text-xs"
+                    className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2.5 bg-dark-800 border border-dark-700 hover:bg-dark-700 hover:border-dark-600 text-gray-300 hover:text-white transition-all text-sm"
                   >
                     <TerminalIcon className="h-4 w-4 text-neb-400" />
-                    Separate View (Split Screen)
+                    Solve In-Page (Split View)
                   </button>
                 </div>
 
-                <Button onClick={onComplete} variant="ghost" size="sm" className="mt-2 text-xs text-gray-500 hover:text-gray-300">
-                  <CheckCircle className="h-4 w-4 mr-1 text-green-500" /> Mark as Completed
+                {/* Hint */}
+                <p className="text-xs text-gray-600 max-w-xs">
+                  Tip: Full-Screen Lab gives you the best experience with a larger workspace.
+                </p>
+
+                <Button onClick={onComplete} variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-400 mt-1">
+                  <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-600" /> Mark as Completed without coding
                 </Button>
               </div>
             </div>
           ) : (
             // Separate View (Scrollable Page Mode)
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-[#040408]">
-              {/* Scroll notification banner */}
-              <div className="p-3 bg-neb-950/40 border border-neb-800/30 text-neb-300 text-xs rounded-xl flex items-center gap-2">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-[#040408]">
+              {/* Info banner */}
+              <div className="p-3 bg-dark-900/80 border border-dark-700 text-gray-400 text-xs rounded-xl flex items-center gap-2">
                 <Info className="h-4 w-4 shrink-0 text-neb-400" />
-                <span>Scroll down to see the editor, and scroll further down to view the output and expected solution.</span>
+                <span>Read the task, write your solution in the editor below, then run to see output.</span>
+                <button
+                  onClick={() => setViewMode('launcher')}
+                  className="ml-auto shrink-0 text-[10px] font-bold text-gray-500 hover:text-white bg-dark-800 px-2 py-0.5 rounded transition"
+                >
+                  ← Back
+                </button>
               </div>
 
               {/* Question */}
-              <div className="bg-[#090910] p-5 rounded-xl border border-dark-800">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    {isMySQL ? <Database className="h-4 w-4 text-blue-400" /> : <Code2 className="h-4 w-4 text-neb-400" />}
-                    <span className="text-xs font-extrabold uppercase text-gray-400">{isMySQL ? 'MySQL Exercise' : 'C Exercise'}</span>
+              <div className="bg-dark-900/60 border border-dark-800 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 bg-dark-900 border-b border-dark-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn(
+                      "w-6 h-6 rounded-md flex items-center justify-center shrink-0",
+                      isMySQL ? "bg-blue-900/40 border border-blue-800/30" : "bg-neb-900/40 border border-neb-800/30"
+                    )}>
+                      {isMySQL ? <Database className="h-3 w-3 text-blue-400" /> : <Code2 className="h-3 w-3 text-neb-400" />}
+                    </div>
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-gray-300">
+                      {isMySQL ? 'MySQL Exercise' : 'C Programming Exercise'}
+                    </span>
                   </div>
-                  <div className="flex gap-2">
-                    <Link
-                      href={isMySQL ? `/mysql-lab?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}` : `/editor?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}`}
-                      className="text-xs bg-neb-600 hover:bg-neb-500 text-white px-2.5 py-1 rounded font-bold transition"
-                    >
-                      Full Screen
-                    </Link>
-                    <button
-                      onClick={() => setViewMode('launcher')}
-                      className="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 transition"
-                    >
-                      Exit View
-                    </button>
-                  </div>
+                  <Link
+                    href={isMySQL ? `/mysql-lab?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}` : `/editor?exercise=${ex.id}&courseId=${courseId}&lessonId=${lessonId}`}
+                    className="text-xs bg-neb-600 hover:bg-neb-500 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5"
+                  >
+                    <Play className="h-3 w-3 fill-current" /> Full Screen
+                  </Link>
                 </div>
-                <div className="prose prose-invert prose-sm max-w-none leading-relaxed">
-                  <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
-                    {ex.question}
-                  </ReactMarkdown>
+                <div className="p-5">
+                  <div className="prose prose-invert prose-sm max-w-none leading-relaxed
+                    prose-headings:text-white prose-headings:font-bold
+                    prose-p:text-gray-300 prose-p:leading-relaxed
+                    prose-strong:text-white
+                    prose-code:text-neb-400 prose-code:bg-dark-800 prose-code:px-1 prose-code:rounded prose-code:text-xs
+                    prose-blockquote:border-l-neb-600 prose-blockquote:text-gray-400
+                    prose-ul:text-gray-300 prose-li:marker:text-neb-500">
+                    <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                      {ex.question}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
 
               {/* Editor/Terminal section */}
               {isMySQL ? (
-                <div className="space-y-6">
-                  <div className="h-[450px] border border-dark-800 rounded-xl overflow-hidden bg-[#06060c]">
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-dark-900 border-b border-dark-800 shrink-0">
-                      <span className="text-[11px] font-bold text-gray-400">MySQL Terminal</span>
+                <div className="space-y-5">
+                  <div className="border border-dark-800 rounded-xl overflow-hidden bg-[#06060c]">
+                    <div className="flex items-center justify-between px-4 py-2 bg-dark-900 border-b border-dark-800">
+                      <span className="text-xs font-bold text-gray-300 flex items-center gap-1.5">
+                        <Database className="h-3.5 w-3.5 text-blue-400" /> MySQL Terminal
+                      </span>
                       <div className="flex gap-2">
                         {ex.answer && (
                           <button
                             onClick={() => setShowAnswer(!showAnswer)}
                             className={cn(
-                              "px-2.5 py-1 rounded text-[11px] transition-all font-semibold",
-                              showAnswer ? "bg-red-950/40 border border-red-800/30 text-red-400" : "bg-dark-800 border border-dark-700 text-gray-400 hover:text-white"
+                              "px-2.5 py-1 rounded text-xs transition-all font-semibold",
+                              showAnswer
+                                ? "bg-amber-950/40 border border-amber-800/30 text-amber-400"
+                                : "bg-dark-800 border border-dark-700 text-gray-400 hover:text-white"
                             )}
                           >
-                            {showAnswer ? 'Hide Answer' : 'Show Answer'}
+                            {showAnswer ? '👁 Hide Solution' : '💡 Show Solution'}
                           </button>
                         )}
                       </div>
                     </div>
-                    <div className="h-[calc(100%-34px)]">
+                    <div className="h-[400px]">
                       <MySQLEmbeddedTerminal title="MySQL Live Session" />
                     </div>
                   </div>
 
                   {showAnswer && ex.answer && (
-                    <div className="bg-[#090910] border border-dark-800 rounded-xl p-5 space-y-3">
-                      <p className="text-neb-400 font-bold text-xs">Expected SQL query:</p>
-                      <pre className="font-mono text-xs text-emerald-300 overflow-x-auto bg-[#05050b] p-3 rounded-lg border border-dark-850 whitespace-pre">
+                    <div className="bg-dark-900/60 border border-amber-800/30 rounded-xl p-5 space-y-3">
+                      <p className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
+                        <span>💡</span> Expected SQL Solution
+                      </p>
+                      <pre className="font-mono text-xs text-emerald-300 overflow-x-auto bg-[#05050b] p-4 rounded-lg border border-dark-850 whitespace-pre leading-relaxed">
                         {ex.answer.correct_code}
                       </pre>
                       {ex.answer.explanation && (
-                        <p className="text-gray-450 text-xs leading-relaxed mt-2">{ex.answer.explanation}</p>
+                        <div className="mt-3 p-3 rounded-lg bg-dark-800/60 border border-dark-700">
+                          <p className="text-[10px] uppercase font-bold text-gray-500 mb-1 tracking-wider">Explanation</p>
+                          <p className="text-gray-300 text-xs leading-relaxed">{ex.answer.explanation}</p>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   {/* Editor */}
                   <div className="border border-dark-800 rounded-xl overflow-hidden bg-[#06060c]">
-                    <div className="flex items-center justify-between px-3 py-1.5 bg-dark-900 border-b border-dark-800 shrink-0">
-                      <span className="text-[11px] font-bold text-gray-400">Editor (main.c)</span>
+                    <div className="flex items-center justify-between px-4 py-2 bg-dark-900 border-b border-dark-800">
+                      <span className="text-xs font-bold text-gray-300 flex items-center gap-1.5">
+                        <Code2 className="h-3.5 w-3.5 text-neb-400" /> Editor — main.c
+                      </span>
                       <div className="flex gap-2">
                         {ex.answer && (
                           <button
                             onClick={() => setShowAnswer(!showAnswer)}
                             className={cn(
-                              "px-2.5 py-1 rounded text-[11px] transition-all font-semibold",
-                              showAnswer ? "bg-red-950/40 border border-red-800/30 text-red-400" : "bg-dark-800 border border-dark-700 text-gray-400 hover:text-white"
+                              "px-2.5 py-1 rounded text-xs transition-all font-semibold",
+                              showAnswer
+                                ? "bg-amber-950/40 border border-amber-800/30 text-amber-400"
+                                : "bg-dark-800 border border-dark-700 text-gray-400 hover:text-white"
                             )}
                           >
-                            {showAnswer ? 'Hide Answer' : 'Show Answer'}
+                            {showAnswer ? '👁 Hide Solution' : '💡 Show Solution'}
                           </button>
                         )}
                         <button
                           onClick={handleRun}
                           disabled={isRunning}
-                          className="px-3 py-1 rounded bg-neb-600 hover:bg-neb-500 disabled:opacity-50 text-white text-[11px] font-bold transition flex items-center gap-1"
+                          className="px-3 py-1.5 rounded-lg bg-neb-600 hover:bg-neb-500 disabled:opacity-50 text-white text-xs font-bold transition flex items-center gap-1.5"
                         >
-                          <Play className="h-3 w-3 fill-current" /> Run
+                          {isRunning
+                            ? <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                            : <Play className="h-3 w-3 fill-current" />
+                          }
+                          {isRunning ? 'Running...' : 'Run'}
                         </button>
                       </div>
                     </div>
-                    <div className="h-[450px] relative">
-                      <MonacoEditor
+                    <div className="h-[420px] relative">
+                      <CodeEditor
                         height="100%"
                         language="c"
                         value={code}
                         onChange={v => setCode(v || '')}
-                        theme="vs-dark"
-                        options={{
-                          fontSize: 13,
-                          fontFamily: '"JetBrains Mono", monospace',
-                          minimap: { enabled: false },
-                          padding: { top: 8 },
-                          tabSize: 4,
-                          automaticLayout: true,
-                          wordWrap: 'on',
-                          lineNumbers: 'on',
-                        }}
+                        wordWrap={true}
                       />
                     </div>
                   </div>
 
-                  {/* Output Console & Solution */}
-                  <div className="bg-[#090910] border border-dark-800 rounded-xl p-5 space-y-4">
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider mb-2">Output Console</p>
+                  {/* Output Console */}
+                  <div className="border border-dark-800 rounded-xl overflow-hidden bg-[#06060c]">
+                    <div className="px-4 py-2 bg-dark-900 border-b border-dark-800">
+                      <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Output Console</span>
+                    </div>
+                    <div className="p-4 min-h-[80px]">
                       {isRunning ? (
-                        <p className="text-gray-500 text-xs italic animate-pulse">Running C compiler...</p>
+                        <div className="flex items-center gap-2 text-gray-500 text-xs">
+                          <span className="animate-spin h-3 w-3 border-2 border-neb-500 border-t-transparent rounded-full" />
+                          Compiling and running your code...
+                        </div>
                       ) : output ? (
-                        <pre className={cn("font-mono text-xs leading-relaxed break-all whitespace-pre-wrap p-3 rounded-lg bg-[#05050b] border border-dark-850", output.success ? "text-green-300" : "text-red-400")}>
-                          {output.stdout || output.stderr || (output.success ? 'Execution completed with return code 0.' : 'Unknown error occurred.')}
+                        <pre className={cn(
+                          "font-mono text-xs leading-relaxed break-all whitespace-pre-wrap",
+                          output.success ? "text-green-300" : "text-red-400"
+                        )}>
+                          {output.stdout || output.stderr || (output.success ? '✓ Execution completed with exit code 0.' : 'An unknown error occurred.')}
                         </pre>
                       ) : (
-                        <p className="text-gray-650 text-xs italic">Click 'Run' to compile and execute C code.</p>
+                        <p className="text-gray-600 text-xs italic">Click <strong className="text-gray-400">Run</strong> above to compile and execute your code.</p>
                       )}
                     </div>
-
-                    {showAnswer && ex.answer && (
-                      <div className="pt-4 border-t border-dark-850 space-y-3">
-                        <p className="text-neb-400 font-bold text-xs">Expected Code:</p>
-                        <pre className="font-mono text-xs text-emerald-300 overflow-x-auto bg-[#05050b] p-3 rounded-lg border border-dark-850 whitespace-pre">
-                          {ex.answer.correct_code}
-                        </pre>
-                        {ex.answer.explanation && (
-                          <p className="text-gray-450 text-xs leading-relaxed mt-2">{ex.answer.explanation}</p>
-                        )}
-                      </div>
-                    )}
                   </div>
+
+                  {/* Solution */}
+                  {showAnswer && ex.answer && (
+                    <div className="bg-dark-900/60 border border-amber-800/30 rounded-xl p-5 space-y-3">
+                      <p className="text-amber-400 font-bold text-xs flex items-center gap-1.5">
+                        <span>💡</span> Expected Solution
+                      </p>
+                      <pre className="font-mono text-xs text-emerald-300 overflow-x-auto bg-[#05050b] p-4 rounded-lg border border-dark-850 whitespace-pre leading-relaxed">
+                        {ex.answer.correct_code}
+                      </pre>
+                      {ex.answer.explanation && (
+                        <div className="mt-3 p-3 rounded-lg bg-dark-800/60 border border-dark-700">
+                          <p className="text-[10px] uppercase font-bold text-gray-500 mb-1 tracking-wider">Explanation</p>
+                          <p className="text-gray-300 text-xs leading-relaxed">{ex.answer.explanation}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -564,3 +665,124 @@ function ExercisePanel({
     </div>
   );
 }
+
+// ─── Text / Theory Exercise View ───────────────────────────────────────────────
+function TextExerciseView({
+  ex,
+  onComplete,
+  showAnswer,
+  setShowAnswer,
+}: {
+  ex: any;
+  onComplete: () => void;
+  showAnswer: boolean;
+  setShowAnswer: (v: boolean) => void;
+}) {
+  const [userAnswer, setUserAnswer] = useState('');
+  const hasAnswer = ex?.answer?.correct_code || ex?.answer?.explanation;
+
+  return (
+    <div className="flex-1 overflow-y-auto animate-in fade-in duration-300">
+      <div className="max-w-2xl mx-auto p-5 md:p-8 space-y-6">
+
+        {/* Question Card */}
+        <div className="bg-dark-900/60 border border-dark-800 rounded-2xl overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 bg-dark-900 border-b border-dark-800 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-900/40 to-amber-950/20 border border-amber-800/30 flex items-center justify-center shrink-0">
+              <span className="text-base">📝</span>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-extrabold tracking-widest text-amber-500/80">Theory Question</p>
+              <p className="text-xs font-semibold text-white mt-0.5">Read carefully and write your answer below</p>
+            </div>
+          </div>
+
+          {/* Question body */}
+          <div className="px-6 py-5">
+            <div className="prose prose-invert prose-sm max-w-none leading-relaxed
+              prose-headings:text-white prose-headings:font-bold
+              prose-p:text-gray-200 prose-p:leading-[1.85]
+              prose-strong:text-white prose-strong:font-semibold
+              prose-code:text-amber-400 prose-code:bg-dark-800 prose-code:px-1.5 prose-code:rounded prose-code:text-xs
+              prose-blockquote:border-l-amber-600 prose-blockquote:text-gray-400 prose-blockquote:bg-dark-900/60 prose-blockquote:not-italic
+              prose-ul:text-gray-200 prose-li:marker:text-amber-500
+              prose-ol:text-gray-200">
+              <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                {ex.question}
+              </ReactMarkdown>
+            </div>
+          </div>
+        </div>
+
+        {/* Answer Text Area */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+            <span className="w-5 h-5 rounded-md bg-dark-800 border border-dark-700 text-gray-300 flex items-center justify-center text-xs">✏️</span>
+            Your Answer
+          </label>
+          <textarea
+            value={userAnswer}
+            onChange={e => setUserAnswer(e.target.value)}
+            rows={6}
+            placeholder="Type your answer here..."
+            className="w-full bg-dark-900 border border-dark-700 rounded-xl px-4 py-3 text-gray-200 text-sm leading-relaxed placeholder-gray-600 resize-y focus:outline-none focus:border-neb-700 focus:ring-1 focus:ring-neb-800/60 transition font-sans"
+          />
+          <p className="text-[11px] text-gray-600">This is for your own reflection — your answer is not submitted anywhere.</p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {hasAnswer && (
+            <button
+              onClick={() => setShowAnswer(!showAnswer)}
+              className={cn(
+                "flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all border",
+                showAnswer
+                  ? "bg-amber-950/30 border-amber-800/40 text-amber-400 hover:bg-amber-950/50"
+                  : "bg-dark-900 border-dark-700 text-gray-300 hover:text-white hover:border-dark-600"
+              )}
+            >
+              {showAnswer ? '👁 Hide Model Answer' : '💡 Reveal Model Answer'}
+            </button>
+          )}
+          <button
+            onClick={onComplete}
+            className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-green-800 hover:bg-green-700 text-white transition-all active:scale-95"
+          >
+            <CheckCircle className="h-4 w-4" /> Mark as Completed
+          </button>
+        </div>
+
+        {/* Model Answer reveal */}
+        {showAnswer && hasAnswer && (
+          <div className="bg-dark-900/60 border border-amber-800/30 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="px-5 py-3.5 bg-dark-900 border-b border-dark-800 flex items-center gap-2">
+              <span className="text-sm">💡</span>
+              <span className="text-xs font-extrabold uppercase tracking-wider text-amber-400">Model Answer</span>
+            </div>
+            <div className="p-5 space-y-4">
+              {ex.answer.correct_code && (
+                <div className="prose prose-invert prose-sm max-w-none leading-relaxed
+                  prose-p:text-gray-200 prose-p:leading-[1.85]
+                  prose-strong:text-white
+                  prose-ul:text-gray-200 prose-li:marker:text-amber-500">
+                  <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>
+                    {ex.answer.correct_code}
+                  </ReactMarkdown>
+                </div>
+              )}
+              {ex.answer.explanation && (
+                <div className="mt-3 p-4 rounded-xl bg-dark-800/60 border border-dark-700">
+                  <p className="text-[10px] uppercase font-bold text-gray-500 mb-2 tracking-wider">Additional Explanation</p>
+                  <p className="text-gray-300 text-sm leading-relaxed">{ex.answer.explanation}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

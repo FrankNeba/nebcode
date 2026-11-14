@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock, Sparkles, GraduationCap } from 'lucide-react';
+import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock, Sparkles, GraduationCap, FileCheck2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { progressService, paymentService, courseService, ambassadorService } from '@/services';
 import { cn } from '@/lib/utils';
@@ -186,8 +186,19 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Lab shortcuts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      {/* Lab & MCQ shortcuts */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <Link href="/mcq" className="card card-hover p-5 flex items-center gap-4 group border-neb-800/40 bg-gradient-to-br from-neb-950/30 to-dark-900">
+          <div className="w-10 h-10 rounded-lg bg-neb-900/60 border border-neb-700/40 flex items-center justify-center shrink-0 group-hover:bg-neb-800 transition-colors">
+            <FileCheck2 className="h-5 w-5 text-neb-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-white text-sm">MCQ Papers</p>
+            <p className="text-xs text-gray-500">50-Q timed past papers</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-neb-400 transition-colors shrink-0" />
+        </Link>
+
         <Link href="/editor" className="card card-hover p-5 flex items-center gap-4 group">
           <div className="w-10 h-10 rounded-lg bg-neb-900/50 border border-neb-800/40 flex items-center justify-center shrink-0 group-hover:bg-neb-900 transition-colors">
             <Code2 className="h-5 w-5 text-neb-400" />

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Code2, Database, User, Home, BookOpen } from 'lucide-react';
+import { Code2, Database, User, Home, BookOpen, FileCheck2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function MobileNav() {
@@ -10,6 +10,7 @@ export function MobileNav() {
   const navItems = [
     { label: 'Home', icon: Home, href: '/dashboard' },
     { label: 'Courses', icon: BookOpen, href: '/courses' },
+    { label: 'MCQs', icon: FileCheck2, href: '/mcq' },
     { label: 'Editor', icon: Code2, href: '/editor' },
     { label: 'MySQL', icon: Database, href: '/mysql-lab' },
     { label: 'Profile', icon: User, href: '/dashboard/profile' },

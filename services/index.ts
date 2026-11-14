@@ -98,6 +98,38 @@ export const mysqlLabService = {
   status: () => api.get('/mysql_lab/status/'),
 };
 
+export const mcqService = {
+  // Student / Public
+  getPapers: (params?: { year?: number | string; search?: string }) => api.get('/mcq/papers/', { params }),
+  getPaper: (id: string) => api.get(`/mcq/papers/${id}/`),
+  takePaper: (id: string) => api.get(`/mcq/papers/${id}/take/`),
+  submitPaper: (
+    id: string,
+    payload: {
+      answers: Record<string, number | null>;
+      time_taken_seconds: number;
+      auto_submitted?: boolean;
+      submission_reason?: string;
+    }
+  ) => api.post(`/mcq/papers/${id}/submit/`, payload),
+  getAttempt: (attemptId: string) => api.get(`/mcq/attempts/${attemptId}/`),
+  getMyAttempts: () => api.get('/mcq/my-attempts/'),
+
+  // Admin
+  getAdminPapers: () => api.get('/mcq/admin/papers/'),
+  createAdminPaper: (data: any) => api.post('/mcq/admin/papers/', data),
+  importAdminPaper: (data: any) => api.post('/mcq/admin/import/', data),
+  getAdminPaperDetail: (id: string) => api.get(`/mcq/admin/papers/${id}/`),
+  updateAdminPaper: (id: string, data: any) => api.patch(`/mcq/admin/papers/${id}/`, data),
+  deleteAdminPaper: (id: string) => api.delete(`/mcq/admin/papers/${id}/`),
+  exportAdminPaperJson: (id: string) => api.get(`/mcq/admin/papers/${id}/export-json/`),
+  updateAdminPaperJson: (id: string, data: any) => api.post(`/mcq/admin/papers/${id}/update-json/`, data),
+  createAdminQuestion: (paperId: string, data: any) => api.post(`/mcq/admin/papers/${paperId}/questions/`, data),
+  updateAdminQuestion: (questionId: string, data: any) => api.patch(`/mcq/admin/questions/${questionId}/`, data),
+  deleteAdminQuestion: (questionId: string) => api.delete(`/mcq/admin/questions/${questionId}/`),
+};
+
+
 export const ambassadorService = {
   getCurrentApplicationPeriod: () => api.get('/ambassadors/application-periods/current/'),
   submitApplication: (data: {

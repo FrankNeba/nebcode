@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState, useCallback, Suspense } from 'react';
-import nextDynamic from 'next/dynamic';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Code2, ArrowLeft } from 'lucide-react';
 import { FileNode } from '@/types';
@@ -10,10 +9,9 @@ import { FileExplorer } from '@/components/editor/FileExplorer';
 import { EditorTabs } from '@/components/editor/EditorTabs';
 import { RunBar } from '@/components/editor/RunBar';
 import { OutputConsole } from '@/components/editor/OutputConsole';
+import { CodeEditor } from '@/components/editor/CodeEditor';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
-
-const MonacoEditor = nextDynamic(() => import('@monaco-editor/react'), { ssr: false });
 
 const DEFAULT_C = `#include <stdio.h>
 
@@ -179,33 +177,13 @@ function EditorContent() {
           <div className="flex-1 flex flex-col overflow-hidden">
             {activeFile ? (
               <div className="flex-1 overflow-hidden">
-                <MonacoEditor
+                <CodeEditor
                   height="100%"
                   language="c"
                   value={activeFile.content}
                   onChange={handleEditorChange}
-                  theme="vs-dark"
-                  options={{
-                    fontSize: 14,
-                    fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                    fontLigatures: false,
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    lineNumbers: 'on',
-                    padding: { top: 12, bottom: 12 },
-                    tabSize: 4,
-                    wordWrap: isMobileMode ? 'on' : 'off',
-                    automaticLayout: true,
-                  }}
-                  onMount={() => {
-                    // Ctrl/Cmd+S to save
-                    document.addEventListener('keydown', (e) => {
-                      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                        e.preventDefault();
-                        handleSave();
-                      }
-                    });
-                  }}
+                  wordWrap={true}
+                  onSave={handleSave}
                 />
               </div>
             ) : (

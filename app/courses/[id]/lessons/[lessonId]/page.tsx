@@ -9,14 +9,13 @@ import { ChevronLeft, CheckCircle, Code2, Eye, EyeOff, Play } from 'lucide-react
 import { Lesson } from '@/types';
 import { courseService, executionService, progressService } from '@/services';
 import { OutputConsole } from '@/components/editor/OutputConsole';
+import { CodeEditor } from '@/components/editor/CodeEditor';
 import { useEditorStore } from '@/store/editor.store';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
 import { useDeviceOtpStore } from '@/store/device-otp.store';
-
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
 export default function LessonPage() {
   const { id: courseId, lessonId } = useParams<{ id: string; lessonId: string }>();
@@ -129,9 +128,14 @@ export default function LessonPage() {
               </Button>
             )}
           </div>
-          <div className="rounded-xl overflow-hidden border border-dark-600 mb-4" style={{ height: 320 }}>
-            <MonacoEditor height="100%" language={exercise.exercise_type === 'c' ? 'c' : 'sql'} value={code} onChange={v => setCode(v || '')} theme="vs-dark"
-              options={{ fontSize: 13, fontFamily: '"JetBrains Mono", monospace', minimap: { enabled: false }, padding: { top: 12 }, tabSize: 4, automaticLayout: true }} />
+          <div className="rounded-xl overflow-hidden border border-dark-600 mb-4" style={{ height: 360 }}>
+            <CodeEditor
+              height="100%"
+              language={exercise.exercise_type === 'c' ? 'c' : 'sql'}
+              value={code}
+              onChange={v => setCode(v || '')}
+              wordWrap={true}
+            />
           </div>
           <div className="h-40"><OutputConsole /></div>
           {showAnswer && exercise.answer && (

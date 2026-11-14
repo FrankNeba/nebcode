@@ -16,7 +16,8 @@ export function middleware(request: NextRequest) {
   const isCourseActionProtected = (
     pathname.includes('/lesson/') ||
     pathname.includes('/lessons/') ||
-    pathname.includes('/exam')
+    pathname.includes('/exam') ||
+    pathname.startsWith('/mcq/')
   );
 
   const isProtected = isStrictlyProtected || isCourseActionProtected;
@@ -35,6 +36,7 @@ export const config = {
     '/mysql-lab', '/mysql-lab/:path*',
     '/editor', '/editor/:path*',
     '/courses/:path*',
+    '/mcq/:path*',
     '/dashboard', '/dashboard/:path*',
     '/admin', '/admin/:path*',
   ],
