@@ -161,7 +161,7 @@ export function CodeEditor({
     }
   };
 
-  const isLight = notepadPlusPlus ? true : theme === 'light';
+  const isLight = theme === 'light';
 
   const langExtension = useMemo(() => {
     const norm = (language || 'c').toLowerCase();
@@ -184,42 +184,39 @@ export function CodeEditor({
       EditorView.theme({
         '&': {
           height: '100%',
-          fontSize: notepadPlusPlus ? '14px' : '13.5px',
-          backgroundColor: notepadPlusPlus ? '#ffffff' : isLight ? '#ffffff' : '#090912',
-          color: notepadPlusPlus ? '#000000' : isLight ? '#0f172a' : '#e8e8f0',
+          fontSize: '13.5px',
+          backgroundColor: isLight ? '#ffffff' : '#090912',
+          color: isLight ? '#0f172a' : '#e8e8f0',
         },
         '.cm-scroller': {
-          fontFamily: notepadPlusPlus
-            ? '"Courier New", Consolas, "Liberation Mono", monospace'
-            : 'var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace',
-          lineHeight: notepadPlusPlus ? '1.55' : '1.65',
+          fontFamily: 'var(--font-jetbrains-mono), "JetBrains Mono", "Fira Code", monospace',
+          lineHeight: '1.65',
           overflowX: effectiveWordWrap ? 'hidden' : 'auto',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
         },
         '.cm-content': {
-          padding: notepadPlusPlus ? '6px 0' : '12px 0',
-          caretColor: notepadPlusPlus ? '#000000' : '#e11d48',
+          padding: '12px 0',
+          caretColor: '#e11d48',
           whiteSpace: effectiveWordWrap ? 'pre-wrap' : 'pre',
         },
         '.cm-line': {
           padding: '0 16px 0 8px',
         },
         '.cm-gutters': {
-          backgroundColor: notepadPlusPlus ? '#e4e4e4' : isLight ? '#f8fafc' : '#07070e',
-          color: notepadPlusPlus ? '#555555' : isLight ? '#64748b' : '#4b5563',
-          borderRight: notepadPlusPlus ? '2px solid #a0a0a0' : isLight ? '1px solid #e2e8f0' : '1px solid #1a1a2e',
-          fontWeight: notepadPlusPlus ? '600' : 'normal',
+          backgroundColor: isLight ? '#f1f5f9' : '#07070e',
+          color: isLight ? '#64748b' : '#4b5563',
+          borderRight: isLight ? '1px solid #cbd5e1' : '1px solid #1a1a2e',
         },
         '.cm-activeLine': {
-          backgroundColor: notepadPlusPlus ? '#e8f2fe' : isLight ? 'rgba(225, 29, 72, 0.05)' : 'rgba(225, 29, 72, 0.06)',
+          backgroundColor: isLight ? 'rgba(225, 29, 72, 0.05)' : 'rgba(225, 29, 72, 0.06)',
         },
         '.cm-activeLineGutter': {
-          backgroundColor: notepadPlusPlus ? '#d0e2f8' : isLight ? 'rgba(225, 29, 72, 0.1)' : 'rgba(225, 29, 72, 0.12)',
-          color: notepadPlusPlus ? '#000080' : '#e11d48',
+          backgroundColor: isLight ? 'rgba(225, 29, 72, 0.1)' : 'rgba(225, 29, 72, 0.12)',
+          color: '#e11d48',
         },
         '.cm-selectionBackground, ::selection': {
-          backgroundColor: notepadPlusPlus ? '#add6ff !important' : isLight ? 'rgba(225, 29, 72, 0.2) !important' : 'rgba(225, 29, 72, 0.3) !important',
+          backgroundColor: isLight ? 'rgba(225, 29, 72, 0.2) !important' : 'rgba(225, 29, 72, 0.3) !important',
         },
       }),
     ];
@@ -243,7 +240,7 @@ export function CodeEditor({
     }
 
     return exts;
-  }, [langExtension, effectiveWordWrap, onSave, isLight, notepadPlusPlus]);
+  }, [langExtension, effectiveWordWrap, onSave, isLight]);
 
   const symbols = useMemo(() => {
     const norm = (language || 'c').toLowerCase();

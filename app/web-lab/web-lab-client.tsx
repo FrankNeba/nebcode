@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import {
+  Globe,
   Play,
   RotateCcw,
   Download,
@@ -24,11 +25,13 @@ import {
   PanelLeftOpen,
   Plus,
   Save,
-  X,
-  FilePlus,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { FileNode } from '@/types';
 import { FileExplorer } from '@/components/editor/FileExplorer';
+import { EditorTabs } from '@/components/editor/EditorTabs';
+import { useThemeStore } from '@/store/theme.store';
 import { cn, copyToClipboard } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
 import toast from 'react-hot-toast';
@@ -38,7 +41,7 @@ const CodeEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center h-full bg-white">
+      <div className="flex items-center justify-center h-full">
         <Spinner className="h-7 w-7" />
       </div>
     ),
@@ -97,11 +100,11 @@ function detectLanguage(filename: string): 'html' | 'css' | 'javascript' {
   return 'html';
 }
 
-function getNotepadLanguageLabel(filename: string): string {
+function getFileTypeLabel(filename: string): string {
   const lower = filename.toLowerCase();
-  if (lower.endsWith('.css')) return 'Cascade Style Sheets file';
-  if (lower.endsWith('.js')) return 'JavaScript file';
-  return 'HyperText Markup Language file';
+  if (lower.endsWith('.css')) return 'Cascade Style Sheets (CSS)';
+  if (lower.endsWith('.js')) return 'JavaScript File (JS)';
+  return 'HyperText Markup Language (HTML)';
 }
 
 function flattenFiles(nodes: FileNode[]): FileNode[] {
@@ -169,6 +172,7 @@ function insertNodeIntoTree(
 }
 
 export default function WebLabClient() {
+  const { theme, toggleTheme } = useThemeStore();
   const [files, setFiles] = useState<FileNode[]>(INITIAL_EMPTY_FILES);
   const [openFiles, setOpenFiles] = useState<FileNode[]>(INITIAL_EMPTY_FILES);
   const [activeFileId, setActiveFileId] = useState<string>('web-html-1');
@@ -517,7 +521,7 @@ ${extraScriptTag}
   return (
     <div
       className={cn(
-        'flex flex-col bg-[#f0f0f0] text-[#1e1e1e] overflow-hidden select-none',
+        'flex flex-col bg-dark-950 overflow-hidden select-none',
         isFullscreen
           ? 'fixed inset-0 z-[200] h-screen w-screen'
           : 'h-[calc(100dvh-116px)] md:h-[calc(100dvh-56px)]'
@@ -536,211 +540,158 @@ ${extraScriptTag}
         </button>
       )}
 
-      {/* ─── NOTEPAD++ CLASSIC TITLE & MENU BAR (Hidden in Fullscreen View) ─── */}
+      {/* ─── TOP ACTION & TOOLBAR (Hidden in Fullscreen View) ─── */}
       {!isFullscreen && (
-        <>
-          {/* Notepad++ Window Title Strip */}
-          <div className="flex items-center justify-between px-2.5 py-1 bg-[#e1e6eb] border-b border-[#c8cfd8] text-[11px] font-sans text-[#1f2937] shrink-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="inline-flex items-center justify-center w-4 h-4 rounded-sm bg-[#7ec850] text-white font-extrabold text-[10px] shadow-sm">
-                N+
-              </span>
-              <span className="font-semibold truncate">
-                {activeFile ? `${activeFile.name} - Notepad++` : 'Notepad++ [GCE Web Exam Mode]'}
-              </span>
-            </div>
-            <div className="hidden md:flex items-center gap-3 text-[10px] text-[#4b5563] font-mono">
-              <span>Link CSS: &lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot;&gt;</span>
-              <span>Link JS: &lt;script src=&quot;script.js&quot;&gt;&lt;/script&gt;</span>
-            </div>
-          </div>
-
-          {/* Notepad++ Classic Menu Bar */}
-          <div className="flex items-center gap-1 px-2 py-0.5 bg-[#f5f6f7] border-b border-[#d4d8dd] text-[11px] text-[#111827] overflow-x-auto no-scrollbar shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                const name = prompt('Enter new file name (e.g. index.html, style.css, script.js):');
-                if (name && name.trim()) handleCreateFile(null, name.trim());
-              }}
-              className="px-2 py-0.5 rounded hover:bg-[#dce6f4] hover:border-[#a0c2e8] transition whitespace-nowrap"
-            >
-              <u>F</u>ile
-            </button>
+        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-dark-900 border-b border-dark-700 shrink-0 flex-wrap">
+          {/* Left: Sidebar Toggle + Lab Badge + New File + Save */}
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setIsSidebarOpen((v) => !v)}
-              className="px-2 py-0.5 rounded hover:bg-[#dce6f4] transition whitespace-nowrap"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-xs font-semibold text-gray-200 transition"
+              title="Toggle File Explorer"
             >
-              <u>E</u>dit
+              {isSidebarOpen ? (
+                <PanelLeftClose className="h-3.5 w-3.5 text-neb-500" />
+              ) : (
+                <PanelLeftOpen className="h-3.5 w-3.5 text-neb-500" />
+              )}
+              <span className="hidden sm:inline">Files</span>
+            </button>
+
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neb-600/15 border border-neb-600/30 text-neb-500 text-xs font-extrabold">
+              <Globe className="h-3.5 w-3.5" />
+              <span>Web Lab</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const name = prompt('Enter new file name (e.g. about.html, style.css, script.js):');
+                if (name && name.trim()) {
+                  handleCreateFile(null, name.trim());
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-xs font-semibold text-gray-200 transition"
+              title="Create New File"
+            >
+              <Plus className="h-3.5 w-3.5 text-neb-500" />
+              <span>New File</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                runPreview();
+                toast.success(`Saved ${activeFile?.name || 'file'}`);
+              }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-xs font-semibold text-gray-200 transition"
+              title="Save File (Ctrl+S)"
+            >
+              <Save className="h-3.5 w-3.5 text-neb-500" />
+              <span className="hidden md:inline">Save</span>
+            </button>
+          </div>
+
+          {/* Center: View Switcher (Code / Split / Preview) */}
+          <div className="flex items-center bg-dark-950 p-0.5 rounded-xl border border-dark-700">
+            <button
+              type="button"
+              onClick={() => setViewMode('code')}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition',
+                viewMode === 'code'
+                  ? 'bg-neb-600 text-white shadow'
+                  : 'text-gray-400 hover:text-white'
+              )}
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              <span>Code</span>
             </button>
             <button
               type="button"
-              onClick={() => setViewMode(viewMode === 'code' ? 'preview' : 'code')}
-              className="px-2 py-0.5 rounded hover:bg-[#dce6f4] transition whitespace-nowrap"
+              onClick={() => {
+                runPreview();
+                setViewMode('split');
+              }}
+              className={cn(
+                'hidden md:flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition',
+                viewMode === 'split'
+                  ? 'bg-neb-600 text-white shadow'
+                  : 'text-gray-400 hover:text-white'
+              )}
             >
-              <u>V</u>iew
+              <Columns className="h-3.5 w-3.5" />
+              <span>Split</span>
             </button>
-            <span className="px-2 py-0.5 text-[#374151] whitespace-nowrap hidden sm:inline">
-              E<u>n</u>coding
-            </span>
-            <span className="px-2 py-0.5 text-[#374151] whitespace-nowrap hidden sm:inline">
-              <u>L</u>anguage
-            </span>
-            <span className="px-2 py-0.5 text-[#374151] whitespace-nowrap hidden md:inline">
-              Se<u>t</u>tings
-            </span>
             <button
               type="button"
               onClick={() => {
                 runPreview();
                 setViewMode('preview');
               }}
-              className="px-2 py-0.5 rounded bg-[#e2f3d5] hover:bg-[#cde9b7] text-[#1e4620] font-semibold transition whitespace-nowrap"
+              className={cn(
+                'flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition',
+                viewMode === 'preview'
+                  ? 'bg-neb-600 text-white shadow'
+                  : 'text-gray-400 hover:text-white'
+              )}
             >
-              <u>R</u>un (Launch in Browser)
+              <Eye className="h-3.5 w-3.5" />
+              <span>Preview</span>
             </button>
           </div>
 
-          {/* Notepad++ Icon Toolbar Strip */}
-          <div className="flex items-center justify-between gap-1.5 px-2 py-1 bg-[#eceef1] border-b border-[#c5cbd3] shrink-0 flex-wrap">
-            {/* Left: Explorer, New File, Save, Download */}
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setIsSidebarOpen((v) => !v)}
-                className={cn(
-                  'flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-semibold transition',
-                  isSidebarOpen
-                    ? 'bg-[#cce4f7] border-[#7eb4ea] text-[#003366]'
-                    : 'bg-[#f8f9fa] hover:bg-[#e2e6ea] border-[#b8c0c8] text-[#1f2937]'
-                )}
-                title="Toggle File Explorer"
-              >
-                {isSidebarOpen ? (
-                  <PanelLeftClose className="h-3.5 w-3.5 text-[#005a9e]" />
-                ) : (
-                  <PanelLeftOpen className="h-3.5 w-3.5 text-[#005a9e]" />
-                )}
-                <span>Files</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const name = prompt('Enter new file name (e.g. about.html, style.css, script.js):');
-                  if (name && name.trim()) {
-                    handleCreateFile(null, name.trim());
-                  }
-                }}
-                className="flex items-center gap-1 px-2 py-1 rounded bg-[#f8f9fa] hover:bg-[#e2e6ea] border border-[#b8c0c8] text-[#1f2937] text-[11px] font-semibold transition"
-                title="New File"
-              >
-                <FilePlus className="h-3.5 w-3.5 text-[#2b7cd3]" />
-                <span className="hidden xs:inline">New</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  runPreview();
-                  toast.success(`Saved ${activeFile?.name || 'file'}`);
-                }}
-                className="flex items-center gap-1 px-2 py-1 rounded bg-[#f8f9fa] hover:bg-[#e2e6ea] border border-[#b8c0c8] text-[#1f2937] text-[11px] font-semibold transition"
-                title="Save File (Ctrl+S)"
-              >
-                <Save className="h-3.5 w-3.5 text-[#1d4ed8]" />
-                <span className="hidden sm:inline">Save</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDownloadHtml}
-                className="flex items-center gap-1 px-2 py-1 rounded bg-[#f8f9fa] hover:bg-[#e2e6ea] border border-[#b8c0c8] text-[#1f2937] text-[11px] font-semibold transition"
-                title="Download combined HTML"
-              >
-                <Download className="h-3.5 w-3.5 text-[#374151]" />
-              </button>
-            </div>
-
-            {/* Center: Editor / Preview Switcher */}
-            <div className="flex items-center bg-[#d8dde4] p-0.5 rounded border border-[#b0b8c2]">
-              <button
-                type="button"
-                onClick={() => setViewMode('code')}
-                className={cn(
-                  'flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[11px] font-bold transition',
-                  viewMode === 'code'
-                    ? 'bg-white text-[#003366] shadow-sm border border-[#9fa8b2]'
-                    : 'text-[#374151] hover:text-black'
-                )}
-              >
-                <Code2 className="h-3.5 w-3.5 text-[#005a9e]" />
-                <span>Editor</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  runPreview();
-                  setViewMode('split');
-                }}
-                className={cn(
-                  'hidden md:flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[11px] font-bold transition',
-                  viewMode === 'split'
-                    ? 'bg-white text-[#003366] shadow-sm border border-[#9fa8b2]'
-                    : 'text-[#374151] hover:text-black'
-                )}
-              >
-                <Columns className="h-3.5 w-3.5 text-[#005a9e]" />
-                <span>Split</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  runPreview();
+          {/* Right: Run + Dark/Light Toggle + Fullscreen + Download */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                runPreview();
+                if (viewMode === 'code') {
                   setViewMode('preview');
-                }}
-                className={cn(
-                  'flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[11px] font-bold transition',
-                  viewMode === 'preview'
-                    ? 'bg-white text-[#003366] shadow-sm border border-[#9fa8b2]'
-                    : 'text-[#374151] hover:text-black'
-                )}
-              >
-                <Eye className="h-3.5 w-3.5 text-[#15803d]" />
-                <span>Preview</span>
-              </button>
-            </div>
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition active:scale-95 shadow-sm"
+            >
+              <Play className="h-3.5 w-3.5 fill-current" />
+              <span>Run</span>
+            </button>
 
-            {/* Right: Run + Fullscreen View Button */}
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  runPreview();
-                  if (viewMode === 'code') {
-                    setViewMode('preview');
-                  }
-                }}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-[11px] font-bold transition shadow-sm"
-                title="Run HTML/CSS/JS in Browser Preview"
-              >
-                <Play className="h-3 w-3 fill-current" />
-                <span>Run</span>
-              </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-200 text-xs font-semibold transition"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="h-3.5 w-3.5 text-amber-400" />
+              ) : (
+                <Moon className="h-3.5 w-3.5 text-neb-500" />
+              )}
+              <span className="hidden lg:inline">{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setIsFullscreen(true)}
-                className="flex items-center gap-1 px-2 py-1 rounded bg-[#005a9e] hover:bg-[#004578] text-white text-[11px] font-bold transition shadow-sm"
-                title="Fullscreen View (See code or preview output alone with no other buttons)"
-              >
-                <Maximize2 className="h-3 w-3" />
-                <span>Fullscreen</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(true)}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-200 text-xs font-semibold transition"
+              title="Fullscreen View (See entire code or preview output alone)"
+            >
+              <Maximize2 className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Fullscreen</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadHtml}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-gray-200 text-xs font-semibold transition"
+              title="Download HTML file"
+            >
+              <Download className="h-3.5 w-3.5 text-neb-500" />
+            </button>
           </div>
-        </>
+        </div>
       )}
 
       {/* ─── MAIN WORKSPACE AREA ─── */}
@@ -768,56 +719,46 @@ ${extraScriptTag}
 
         {/* Right Content Area */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 min-w-0">
-          {/* ─── NOTEPAD++ CODE EDITOR PANE ─── */}
+          {/* ─── CODE EDITOR PANE ─── */}
           {(viewMode === 'code' || viewMode === 'split') && (
             <div
               className={cn(
-                'flex flex-col overflow-hidden min-h-0 border-b md:border-b-0 md:border-r border-[#c5cbd3] bg-white',
+                'flex flex-col overflow-hidden min-h-0 border-b md:border-b-0 md:border-r border-dark-700',
                 viewMode === 'split' && !isFullscreen ? 'h-1/2 md:h-full md:w-1/2' : 'h-full w-full'
               )}
             >
-              {/* Classic Notepad++ File Tabs Bar (Hidden in Fullscreen View) */}
+              {/* Open File Tabs (Hidden in Fullscreen View) */}
               {!isFullscreen && (
-                <div className="flex items-end bg-[#d9dfe7] border-b border-[#a8b2be] px-1 pt-1 gap-0.5 overflow-x-auto no-scrollbar shrink-0">
-                  {syncedOpenFiles.map((file) => {
-                    const isActive = file.id === activeFile?.id;
-                    return (
-                      <div
-                        key={file.id}
-                        onClick={() => handleSelectFile(file)}
-                        className={cn(
-                          'group flex items-center gap-1.5 px-2.5 py-1 rounded-t text-xs font-sans cursor-pointer border-x border-t transition select-none shrink-0',
-                          isActive
-                            ? 'bg-white text-[#111827] font-bold border-[#a8b2be] border-t-2 border-t-[#f59e0b] -mb-px z-10'
-                            : 'bg-[#e6ebf1] hover:bg-[#f0f4f8] text-[#4b5563] border-[#bfc7d1]'
-                        )}
-                      >
-                        {/* Classic Notepad++ small blue floppy icon on tab */}
-                        <Save
-                          className={cn(
-                            'h-3 w-3 shrink-0',
-                            isActive ? 'text-[#2563eb]' : 'text-[#64748b]'
-                          )}
-                        />
-                        <span className="truncate max-w-[130px]">{file.name}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCloseTab(file.id);
-                          }}
-                          className="p-0.5 rounded hover:bg-red-100 hover:text-red-600 text-[#6b7280] transition"
-                          title="Close tab"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                <div className="flex items-center justify-between bg-dark-800 border-b border-dark-700 shrink-0">
+                  <div className="flex-1 overflow-x-auto no-scrollbar">
+                    <EditorTabs
+                      openFiles={syncedOpenFiles}
+                      activeFileId={activeFile?.id || null}
+                      onSelect={handleSelectFile}
+                      onClose={handleCloseTab}
+                    />
+                  </div>
+                  {activeFile && (
+                    <span className="text-[10px] font-mono uppercase text-gray-400 px-3 shrink-0 hidden sm:flex items-center gap-1">
+                      {activeFile.language === 'html' ? (
+                        <>
+                          <FileCode className="h-3 w-3 text-orange-500" /> HTML5
+                        </>
+                      ) : activeFile.language === 'css' ? (
+                        <>
+                          <Palette className="h-3 w-3 text-blue-500" /> CSS3
+                        </>
+                      ) : (
+                        <>
+                          <Braces className="h-3 w-3 text-amber-500" /> JavaScript
+                        </>
+                      )}
+                    </span>
+                  )}
                 </div>
               )}
 
-              {/* Notepad++ Editor Surface */}
+              {/* CodeMirror 6 Editor (Respects Dark & Light Mode) */}
               {activeFile ? (
                 <div className="flex-1 overflow-hidden min-h-0">
                   <CodeEditor
@@ -826,33 +767,28 @@ ${extraScriptTag}
                     value={activeFile.content}
                     onChange={handleCodeChange}
                     onSave={runPreview}
-                    notepadPlusPlus={true}
                     showQuickBar={!isFullscreen}
                   />
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white">
-                  <FolderOpen className="h-12 w-12 text-gray-400 mb-3" />
-                  <p className="text-gray-700 text-sm font-semibold">No file open in Notepad++</p>
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                  <FolderOpen className="h-12 w-12 text-dark-500 mb-3" />
+                  <p className="text-gray-400 text-sm font-semibold">No file selected</p>
                   <p className="text-gray-500 text-xs mt-1">
-                    Select a file from the Explorer or click &ldquo;New&rdquo; on the toolbar.
+                    Select a file from the Explorer or click &ldquo;New File&rdquo; above.
                   </p>
                 </div>
               )}
 
-              {/* Classic Notepad++ Bottom Status Bar (Hidden in Fullscreen View) */}
+              {/* Bottom Status Bar (Hidden in Fullscreen View) */}
               {!isFullscreen && activeFile && (
-                <div className="flex items-center justify-between px-2.5 py-0.5 bg-[#eceef1] border-t border-[#c5cbd3] text-[11px] font-sans text-[#374151] shrink-0 overflow-x-auto no-scrollbar gap-4">
-                  <span className="font-medium truncate">
-                    {getNotepadLanguageLabel(activeFile.name)}
-                  </span>
-                  <div className="flex items-center gap-4 shrink-0 font-mono text-[10px]">
+                <div className="flex items-center justify-between px-3 py-1 bg-dark-900 border-t border-dark-700 text-[11px] font-mono text-gray-400 shrink-0 overflow-x-auto no-scrollbar gap-4">
+                  <span className="truncate">{getFileTypeLabel(activeFile.name)}</span>
+                  <div className="flex items-center gap-4 shrink-0 text-[10px]">
                     <span>
-                      length : {contentLength} &nbsp; lines : {lineCount}
+                      Length: {contentLength} | Lines: {lineCount}
                     </span>
-                    <span className="hidden sm:inline">Windows (CR LF)</span>
-                    <span>UTF-8</span>
-                    <span className="px-1 bg-[#dcdfe4] rounded">INS</span>
+                    <span className="hidden sm:inline">UTF-8</span>
                   </div>
                 </div>
               )}
@@ -877,7 +813,7 @@ ${extraScriptTag}
                       className="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-xs font-bold text-gray-200 flex items-center gap-1 shrink-0"
                     >
                       <Code2 className="h-3.5 w-3.5 text-neb-500" />
-                      <span>Back to Notepad++</span>
+                      <span>Back to Editor</span>
                     </button>
                     <div className="px-2.5 py-1 rounded-md bg-dark-950 border border-dark-700 text-[11px] font-mono text-gray-400 truncate flex-1 max-w-xs">
                       http://localhost/{previewHtmlFileName}
