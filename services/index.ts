@@ -79,6 +79,7 @@ export const paymentService = {
   initiateSubscription: (phone: string, gateway: string, plan_type: 'monthly' | 'yearly' = 'yearly') =>
     api.post('/payments/subscription/initiate/', { phone, gateway, plan_type }),
   getSubscriptionStatus: () => api.get('/payments/subscription/status/'),
+  checkLabAccess: () => api.post('/payments/lab-access/check/'),
   // Access codes
   generateAccessCode: () => api.post('/payments/access-codes/generate/'),
   listAccessCodes: () => api.get('/payments/access-codes/'),

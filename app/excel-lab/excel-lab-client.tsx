@@ -42,6 +42,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { LabAccessGate } from '@/components/ui/LabAccessGate';
 import {
   SheetData,
   CellData,
@@ -874,6 +875,7 @@ export default function ExcelLabClient() {
           : 'h-[calc(100dvh-116px)] md:h-[calc(100dvh-56px)]'
       } bg-dark-950 flex flex-col overflow-hidden`}
     >
+      <LabAccessGate labName="Excel Practice Lab" hideBanner={isFullscreen}>
       {/* Floating Exit Fullscreen Button (Only visible when Fullscreen View is active) */}
       {isFullscreen && (
         <button
@@ -2073,6 +2075,7 @@ export default function ExcelLabClient() {
           </div>
         </div>
       )}
+      </LabAccessGate>
     </div>
   );
 }

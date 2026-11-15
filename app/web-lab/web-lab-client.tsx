@@ -31,6 +31,7 @@ import {
 import { FileNode } from '@/types';
 import { FileExplorer } from '@/components/editor/FileExplorer';
 import { EditorTabs } from '@/components/editor/EditorTabs';
+import { LabAccessGate } from '@/components/ui/LabAccessGate';
 import { useThemeStore } from '@/store/theme.store';
 import { cn, copyToClipboard } from '@/lib/utils';
 import { Spinner } from '@/components/ui/Spinner';
@@ -527,6 +528,7 @@ ${extraScriptTag}
           : 'h-[calc(100dvh-116px)] md:h-[calc(100dvh-56px)]'
       )}
     >
+      <LabAccessGate labName="Web Practice Lab" hideBanner={isFullscreen}>
       {/* Floating Exit Fullscreen Button (Only visible when Fullscreen View is active) */}
       {isFullscreen && (
         <button
@@ -990,6 +992,7 @@ ${extraScriptTag}
           )}
         </div>
       </div>
+      </LabAccessGate>
     </div>
   );
 }
