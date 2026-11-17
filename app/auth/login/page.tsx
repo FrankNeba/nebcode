@@ -29,16 +29,18 @@ function LoginFormContent() {
   const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
-    logout();
-    if (redirectParam && redirectParam.startsWith('/')) {
+    if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('/auth')) {
       localStorage.setItem('auth_redirect', redirectParam);
     }
-  }, [logout, redirectParam]);
+  }, [redirectParam]);
 
   const getRedirectTarget = () => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
     const target = redirectParam || saved || '/dashboard';
-    return target.startsWith('/') ? target : '/dashboard';
+    if (!target.startsWith('/') || target.startsWith('/auth')) {
+      return '/dashboard';
+    }
+    return target;
   };
 
   const handleResendVerification = async () => {
@@ -69,7 +71,7 @@ function LoginFormContent() {
         const target = getRedirectTarget();
         if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
         toast.success('Welcome back!');
-        router.push(target);
+        window.location.href = target;
       }
     } catch (err: any) {
       if (err?.response?.status === 403 && err?.response?.data?.is_verified === false) {
@@ -168,11 +170,11 @@ function LoginFormContent() {
             <div className="py-4">
               <GoogleLoginButton onSuccess={(isNew) => {
                 const target = getRedirectTarget();
+                if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
                 if (isNew) {
                   setShowGoogleRefModal(true);
                 } else {
-                  if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
-                  router.push(target);
+                  window.location.href = target;
                 }
               }} />
             </div>

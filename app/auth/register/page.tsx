@@ -46,10 +46,8 @@ function RegisterFormContent() {
   const [googleNewUser, setGoogleNewUser] = useState(false);
   const pendingCodeRef = useRef(''); // stores the access code to redeem after Google sign-in
 
-  useEffect(() => { logout(); }, [logout]);
-
   useEffect(() => {
-    if (redirectParam && redirectParam.startsWith('/')) {
+    if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('/auth')) {
       localStorage.setItem('auth_redirect', redirectParam);
     }
   }, [redirectParam]);
@@ -57,7 +55,10 @@ function RegisterFormContent() {
   const getRedirectTarget = () => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('auth_redirect') : null;
     const target = redirectParam || saved || '/dashboard';
-    return target.startsWith('/') ? target : '/dashboard';
+    if (!target.startsWith('/') || target.startsWith('/auth')) {
+      return '/dashboard';
+    }
+    return target;
   };
 
   // Pre-fill referral code from ?ref= URL param

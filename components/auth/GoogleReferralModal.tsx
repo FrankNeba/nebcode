@@ -26,9 +26,10 @@ export default function GoogleReferralModal({ onClose }: GoogleReferralModalProp
       await authService.claimReferral(code.trim());
       toast.success('Referral code applied successfully!');
       onClose();
-      const target = (typeof window !== 'undefined' && localStorage.getItem('auth_redirect')) || '/dashboard';
+      let target = (typeof window !== 'undefined' && localStorage.getItem('auth_redirect')) || '/dashboard';
+      if (!target.startsWith('/') || target.startsWith('/auth')) target = '/dashboard';
       if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
-      router.push(target);
+      window.location.href = target;
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || 'Invalid referral code.');
     } finally {
@@ -39,9 +40,10 @@ export default function GoogleReferralModal({ onClose }: GoogleReferralModalProp
   const handleSkip = () => {
     toast.success('Welcome to Nebcode!');
     onClose();
-    const target = (typeof window !== 'undefined' && localStorage.getItem('auth_redirect')) || '/dashboard';
+    let target = (typeof window !== 'undefined' && localStorage.getItem('auth_redirect')) || '/dashboard';
+    if (!target.startsWith('/') || target.startsWith('/auth')) target = '/dashboard';
     if (typeof window !== 'undefined') localStorage.removeItem('auth_redirect');
-    router.push(target);
+    window.location.href = target;
   };
 
   return (

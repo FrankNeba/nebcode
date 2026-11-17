@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { authService } from '@/services';
 import Cookies from 'js-cookie';
-import { useAuthStore } from '@/store/auth.store';
+import { useAuthStore, getOrCreateDeviceId } from '@/store/auth.store';
 
 interface GoogleLoginButtonProps {
   onSuccess: (isNewUser: boolean) => void;
@@ -27,13 +27,14 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
     const handleCredentialResponse = async (response: any) => {
       try {
         const credential = response.credential;
-        const device_id = typeof window !== 'undefined' ? localStorage.getItem('nebcode_device_id') : undefined;
+        const device_id = getOrCreateDeviceId();
         const { data } = await authService.googleAuth({ token: credential, device_id: device_id || undefined });
         
+        const isSecure = typeof window !== 'undefined' ? window.location.protocol === 'https:' : process.env.NODE_ENV === 'production';
         const cookieOptions = {
           expires: 7,
           path: '/',
-          secure: process.env.NODE_ENV === 'production',
+          secure: isSecure,
           sameSite: 'lax' as const
         };
         

@@ -6,7 +6,7 @@ import { User } from '@/types';
 import api from '@/lib/api';
 
 // Persist a stable device ID in localStorage
-function getOrCreateDeviceId(): string {
+export function getOrCreateDeviceId(): string {
   if (typeof window === 'undefined') return '';
   let id = localStorage.getItem('nebcode_device_id');
   if (!id) { id = uuidv4(); localStorage.setItem('nebcode_device_id', id); }
@@ -35,9 +35,10 @@ export const useAuthStore = create<AuthState>()(
           if (data.otp_required) {
             return { otp_required: true };
           }
+          const isSecure = typeof window !== 'undefined' ? window.location.protocol === 'https:' : process.env.NODE_ENV === 'production';
           const cookieOptions = {
             expires: 7, path: '/',
-            secure: process.env.NODE_ENV === 'production',
+            secure: isSecure,
             sameSite: 'lax' as const
           };
           Cookies.set('access_token', data.access, cookieOptions);

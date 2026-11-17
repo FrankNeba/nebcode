@@ -37,10 +37,11 @@ function VerifyEmailContent() {
         const { access, refresh } = res.data;
 
         // Store tokens (same cookie config used everywhere else)
+        const isSecure = typeof window !== 'undefined' ? window.location.protocol === 'https:' : process.env.NODE_ENV === 'production';
         const cookieOptions = {
           expires: 7,
           path: '/',
-          secure: process.env.NODE_ENV === 'production',
+          secure: isSecure,
           sameSite: 'lax' as const,
         };
         Cookies.set('access_token', access, cookieOptions);
