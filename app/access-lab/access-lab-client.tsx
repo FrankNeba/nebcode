@@ -34,6 +34,7 @@ import {
   ArrowUpDown,
   Printer,
   FileCode,
+  Pencil,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { LabAccessGate } from '@/components/ui/LabAccessGate';
@@ -55,9 +56,11 @@ import {
   exportDatabaseToSQL,
 } from '@/lib/access-engine';
 
-const STORAGE_KEY = 'nebcode_access_lab_v1';
+const DATABASES_STORAGE_KEY = 'nebcode_access_databases_v2';
+const ACTIVE_DB_ID_KEY = 'nebcode_access_active_db_id_v2';
 
 type ActiveTabType =
+  | { type: 'empty' }
   | { type: 'table_design'; tableName: string }
   | { type: 'table_datasheet'; tableName: string }
   | { type: 'query'; queryId: string }
@@ -94,25 +97,71 @@ const MOBILE_SQL_TOKENS = [
   ';',
 ];
 
-export default function AccessLabClient() {
-  // Database state
-  const [db, setDb] = useState<AccessDatabase>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to load saved Access DB:', e);
+function loadInitialDatabases(): { databases: AccessDatabase[]; activeId: string } {
+  if (typeof window === 'undefined') {
+    const blank = getBlankDatabase('Database1.accdb');
+    return { databases: [blank], activeId: blank.id };
+  }
+  try {
+    const raw = localStorage.getItem(DATABASES_STORAGE_KEY);
+    if (raw) {
+      const parsed: AccessDatabase[] = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const savedId = localStorage.getItem(ACTIVE_DB_ID_KEY);
+        const active = parsed.find((d) => d.id === savedId) || parsed[0];
+        return { databases: parsed, activeId: active.id };
       }
     }
-    return getGceSchoolTemplate();
-  });
+  } catch (e) {
+    console.error('Failed to load Access databases from storage:', e);
+  }
+  // The user requested: "the databases shoudl be empty even the initial database."
+  const blank = getBlankDatabase('Database1.accdb');
+  return { databases: [blank], activeId: blank.id };
+}
+
+export default function AccessLabClient() {
+  // Multi-Database state
+  const [databases, setDatabases] = useState<AccessDatabase[]>(() => loadInitialDatabases().databases);
+  const [activeDbId, setActiveDbId] = useState<string>(() => loadInitialDatabases().activeId);
+
+  // Database manager modal state
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [newDbNameInput, setNewDbNameInput] = useState('');
+  const [editingDbId, setEditingDbId] = useState<string | null>(null);
+  const [editingDbName, setEditingDbName] = useState('');
+
+  // Active database derived
+  const db = useMemo(() => {
+    return databases.find((d) => d.id === activeDbId) || databases[0] || getBlankDatabase('Database1.accdb');
+  }, [databases, activeDbId]);
+
+  // setDb updates the active database inside databases list
+  const setDb = (updater: AccessDatabase | ((prev: AccessDatabase) => AccessDatabase)) => {
+    setDatabases((prevDbs) => {
+      const idx = prevDbs.findIndex((d) => d.id === activeDbId);
+      const current = idx >= 0 ? prevDbs[idx] : prevDbs[0] || getBlankDatabase('Database1.accdb');
+      const updated = typeof updater === 'function' ? updater(current) : updater;
+      if (idx >= 0) {
+        const next = [...prevDbs];
+        next[idx] = updated;
+        return next;
+      } else {
+        return [...prevDbs, updated];
+      }
+    });
+  };
 
   // UI state
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [activeTab, setActiveTab] = useState<ActiveTabType>({
-    type: 'table_datasheet',
-    tableName: 'tbl_Student',
+  const [activeTab, setActiveTab] = useState<ActiveTabType>(() => {
+    const initData = loadInitialDatabases();
+    const active = initData.databases.find((d) => d.id === initData.activeId) || initData.databases[0];
+    const firstTable = active ? Object.keys(active.tables)[0] : null;
+    if (firstTable) {
+      return { type: 'table_datasheet', tableName: firstTable };
+    }
+    return { type: 'empty' };
   });
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [navSearch, setNavSearch] = useState('');
@@ -142,14 +191,16 @@ export default function AccessLabClient() {
   // Cheatsheet modal
   const [showCheatSheet, setShowCheatSheet] = useState(false);
 
-  // Sync to localStorage
+  // Sync multi-databases to localStorage
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      localStorage.setItem(DATABASES_STORAGE_KEY, JSON.stringify(databases));
+      localStorage.setItem(ACTIVE_DB_ID_KEY, activeDbId);
     } catch (e) {
-      console.error('Failed to save Access DB:', e);
+      console.error('Failed to save Access databases:', e);
     }
-  }, [db]);
+  }, [databases, activeDbId]);
 
   // Keep query SQL in sync when switching query tabs
   useEffect(() => {
@@ -424,11 +475,15 @@ export default function AccessLabClient() {
   const handleCreateNewQuery = () => {
     const count = Object.keys(db.queries).length + 1;
     const qId = `qry_Query${count}`;
-    const firstTable = Object.values(db.tables)[0]?.name || 'tbl_Student';
+    const tablesList = Object.values(db.tables);
+    const sql =
+      tablesList.length > 0
+        ? `SELECT * FROM ${tablesList[0].name};`
+        : `SELECT "Welcome to Microsoft Access SQL" AS Message;`;
     const newQ: SavedQuery = {
       id: qId,
       name: qId,
-      sql: `SELECT * FROM ${firstTable};`,
+      sql,
       description: 'Custom Access SQL query',
     };
 
@@ -463,6 +518,10 @@ export default function AccessLabClient() {
   // Relationships
   // --------------------------------------------------------------------------
   const handleAddRelationship = () => {
+    if (Object.keys(db.tables).length < 2) {
+      toast.error('You need at least 2 tables to define a relationship.');
+      return;
+    }
     if (!newRel.fromTable || !newRel.fromField || !newRel.toTable || !newRel.toField) {
       toast.error('Please select both parent (PK) and child (FK) tables and fields.');
       return;
@@ -500,7 +559,13 @@ export default function AccessLabClient() {
   // Forms & Reports
   // --------------------------------------------------------------------------
   const handleCreateNewForm = () => {
-    const firstTable = Object.values(db.tables)[0]?.name || 'tbl_Student';
+    const tablesList = Object.values(db.tables);
+    if (tablesList.length === 0) {
+      toast.error('Please create at least one table before creating a form.');
+      handleCreateNewTable();
+      return;
+    }
+    const firstTable = tablesList[0].name;
     const formId = `frm_${firstTable}`;
     const newForm: SavedForm = {
       id: formId,
@@ -520,7 +585,13 @@ export default function AccessLabClient() {
   };
 
   const handleCreateNewReport = () => {
-    const firstTable = Object.values(db.tables)[0]?.name || 'tbl_Student';
+    const tablesList = Object.values(db.tables);
+    if (tablesList.length === 0) {
+      toast.error('Please create at least one table before generating a report.');
+      handleCreateNewTable();
+      return;
+    }
+    const firstTable = tablesList[0].name;
     const reportId = `rpt_${firstTable}`;
     const newReport: SavedReport = {
       id: reportId,
@@ -540,23 +611,88 @@ export default function AccessLabClient() {
   };
 
   // --------------------------------------------------------------------------
-  // Templates & Export
+  // Multi-Database Management
   // --------------------------------------------------------------------------
-  const handleResetToGceSchool = () => {
-    if (confirm('Reset to the Cameroon GCE School Management template? Current unsaved changes will be replaced.')) {
-      const template = getGceSchoolTemplate();
-      setDb(template);
-      setActiveTab({ type: 'table_datasheet', tableName: 'tbl_Student' });
-      toast.success('Loaded GCE School Management template');
+  const handleCreateNewDatabase = (customName?: string) => {
+    const defaultName = `Database${databases.length + 1}`;
+    const rawName = (customName || newDbNameInput).trim() || defaultName;
+    const newDb = getBlankDatabase(rawName);
+    setDatabases((prev) => [...prev, newDb]);
+    setActiveDbId(newDb.id);
+    setActiveTab({ type: 'empty' });
+    setNewDbNameInput('');
+    setIsDbModalOpen(false);
+    toast.success(`Created new empty database '${newDb.name}'`);
+  };
+
+  const handleSwitchDatabase = (targetId: string) => {
+    const target = databases.find((d) => d.id === targetId);
+    if (!target) return;
+    setActiveDbId(targetId);
+    const firstTable = Object.keys(target.tables)[0];
+    if (firstTable) {
+      setActiveTab({ type: 'table_datasheet', tableName: firstTable });
+    } else {
+      setActiveTab({ type: 'empty' });
+    }
+    setIsDbModalOpen(false);
+    toast.success(`Switched to '${target.name}'`);
+  };
+
+  const handleDeleteDatabase = (dbId: string) => {
+    if (databases.length <= 1) {
+      toast.error('You must keep at least one database. Use Blank Current DB to clear it instead.');
+      return;
+    }
+    const target = databases.find((d) => d.id === dbId);
+    if (!target) return;
+    if (confirm(`Permanently delete database '${target.name}'? All tables and queries will be removed.`)) {
+      if (dbId === activeDbId) {
+        const other = databases.find((d) => d.id !== dbId)!;
+        setActiveDbId(other.id);
+        const firstTable = Object.keys(other.tables)[0];
+        if (firstTable) {
+          setActiveTab({ type: 'table_datasheet', tableName: firstTable });
+        } else {
+          setActiveTab({ type: 'empty' });
+        }
+      }
+      setDatabases((prev) => prev.filter((d) => d.id !== dbId));
+      toast.success(`Database '${target.name}' deleted`);
     }
   };
 
+  const handleRenameDatabase = (dbId: string, newName: string) => {
+    const clean = newName.trim();
+    if (!clean) return;
+    const finalName = clean.endsWith('.accdb') ? clean : `${clean}.accdb`;
+    setDatabases((prev) =>
+      prev.map((d) => (d.id === dbId ? { ...d, name: finalName, updatedAt: new Date().toISOString() } : d))
+    );
+    setEditingDbId(null);
+    setEditingDbName('');
+    toast.success(`Database renamed to '${finalName}'`);
+  };
+
+  const handleLoadGceSchoolAsNew = () => {
+    const sample = getGceSchoolTemplate();
+    sample.id = `db_${Date.now()}`;
+    sample.name = 'GCE_School_Sample.accdb';
+    setDatabases((prev) => [...prev, sample]);
+    setActiveDbId(sample.id);
+    setActiveTab({ type: 'table_datasheet', tableName: 'tbl_Student' });
+    setIsDbModalOpen(false);
+    toast.success('Loaded GCE School Management sample as a new database');
+  };
+
   const handleStartBlank = () => {
-    if (confirm('Create a new blank Access database?')) {
-      const blank = getBlankDatabase();
-      setDb(blank);
-      setActiveTab({ type: 'table_design', tableName: 'Table1' });
-      toast.success('Created blank Access database');
+    if (confirm(`Clear all tables, queries and relationships in '${db.name}' to make it completely blank?`)) {
+      setDb((prev) => ({
+        ...getBlankDatabase(prev.name),
+        id: prev.id,
+      }));
+      setActiveTab({ type: 'empty' });
+      toast.success(`Cleared '${db.name}' to blank`);
     }
   };
 
@@ -613,9 +749,17 @@ export default function AccessLabClient() {
                   GCE O/A-Level
                 </span>
               </div>
-              <h1 className="text-xs sm:text-sm font-bold text-white truncate max-w-[140px] sm:max-w-xs">
-                {db.name}
-              </h1>
+              <button
+                type="button"
+                onClick={() => setIsDbModalOpen(true)}
+                className="flex items-center gap-1 mt-0.5 text-left group hover:bg-dark-800 px-1.5 py-0.5 -ml-1.5 rounded transition"
+                title="Click to switch, create or manage databases"
+              >
+                <span className="text-xs sm:text-sm font-bold text-white truncate max-w-[120px] sm:max-w-xs group-hover:text-rose-300">
+                  {db.name}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400 group-hover:text-rose-400 shrink-0" />
+              </button>
             </div>
           </div>
 
@@ -758,28 +902,46 @@ export default function AccessLabClient() {
                 >
                   <Printer className="w-3.5 h-3.5" /> Report
                 </button>
+                <button
+                  onClick={() => handleCreateNewDatabase()}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 text-gray-300 border border-dark-700 font-semibold"
+                >
+                  <Plus className="w-3.5 h-3.5 text-rose-400" /> New DB
+                </button>
               </div>
             )}
 
             {ribbonTab === 'tools' && (
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => setActiveTab({ type: 'relationships' })}
+                  onClick={() => setIsDbModalOpen(true)}
                   className="flex items-center gap-1 px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 text-rose-300 font-semibold border border-dark-700"
+                >
+                  <Database className="w-3.5 h-3.5" /> Databases ({databases.length})
+                </button>
+                <button
+                  onClick={() => handleCreateNewDatabase()}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-semibold border border-rose-600/30"
+                >
+                  <Plus className="w-3.5 h-3.5" /> New DB
+                </button>
+                <button
+                  onClick={() => setActiveTab({ type: 'relationships' })}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 text-sky-300 font-semibold border border-dark-700"
                 >
                   <Share2 className="w-3.5 h-3.5" /> Relationships Canvas
                 </button>
                 <button
-                  onClick={handleResetToGceSchool}
+                  onClick={handleLoadGceSchoolAsNew}
                   className="flex items-center gap-1 px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 text-amber-300 font-medium border border-dark-700"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" /> Load GCE School Sample
+                  <RotateCcw className="w-3.5 h-3.5" /> Load GCE Sample
                 </button>
                 <button
                   onClick={handleStartBlank}
                   className="flex items-center gap-1 px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 text-gray-300 font-medium border border-dark-700"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Blank DB
+                  <Trash2 className="w-3.5 h-3.5" /> Blank Current DB
                 </button>
               </div>
             )}
@@ -801,42 +963,91 @@ export default function AccessLabClient() {
           {/* ------------------------------------------------------------------ */}
           {/* LEFT: ALL ACCESS OBJECTS NAVIGATION PANE                           */}
           {/* ------------------------------------------------------------------ */}
+          {/* Mobile backdrop for Navigation drawer */}
           {isNavOpen && (
-            <aside className="w-56 sm:w-64 bg-dark-900 border-r border-dark-800 flex flex-col shrink-0 overflow-y-auto">
-              <div className="p-2 border-b border-dark-800 bg-dark-950/60 sticky top-0 z-10 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  <span>All Access Objects</span>
+            <div
+              className="md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-xs"
+              onClick={() => setIsNavOpen(false)}
+            />
+          )}
+
+          {/* LEFT: ALL ACCESS OBJECTS NAVIGATION PANE */}
+          <aside
+            className={`
+              fixed md:static inset-y-0 left-0 z-40 md:z-auto
+              w-64 bg-dark-900 border-r border-dark-800 flex flex-col shrink-0 overflow-y-auto
+              transition-transform duration-200 ease-in-out shadow-2xl md:shadow-none
+              ${isNavOpen ? 'translate-x-0' : '-translate-x-full md:hidden'}
+            `}
+          >
+            <div className="p-2 border-b border-dark-800 bg-dark-950/60 sticky top-0 z-10 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <span className="flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-rose-400" />
+                  All Objects
+                </span>
+                <div className="flex items-center gap-1">
                   <button
-                    onClick={handleCreateNewTable}
+                    onClick={() => {
+                      handleCreateNewTable();
+                      if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                    }}
                     title="Create Table"
                     className="p-1 hover:text-rose-400 transition"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
-                </div>
-                <div className="relative">
-                  <Search className="w-3 h-3 text-gray-500 absolute left-2 top-2" />
-                  <input
-                    type="text"
-                    placeholder="Search objects..."
-                    value={navSearch}
-                    onChange={(e) => setNavSearch(e.target.value)}
-                    className="w-full pl-7 pr-2 py-1 text-xs bg-dark-900 border border-dark-700 rounded-lg text-white placeholder-gray-500 outline-none focus:border-rose-500"
-                  />
+                  <button
+                    onClick={() => setIsNavOpen(false)}
+                    className="md:hidden p-1 text-gray-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
+              <div className="relative">
+                <Search className="w-3 h-3 text-gray-500 absolute left-2 top-2" />
+                <input
+                  type="text"
+                  placeholder="Search objects..."
+                  value={navSearch}
+                  onChange={(e) => setNavSearch(e.target.value)}
+                  className="w-full pl-7 pr-2 py-1 text-xs bg-dark-900 border border-dark-700 rounded-lg text-white placeholder-gray-500 outline-none focus:border-rose-500"
+                />
+              </div>
+            </div>
 
-              <div className="p-2 space-y-4 text-xs">
-                {/* 1. Tables Section */}
-                <div>
-                  <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
-                    <span className="flex items-center gap-1 text-rose-400">
-                      <Table className="w-3 h-3" /> Tables ({filteredTables.length})
-                    </span>
-                    <button onClick={handleCreateNewTable} className="text-gray-500 hover:text-white">
-                      <Plus className="w-3 h-3" />
+            <div className="p-2 space-y-4 text-xs">
+              {/* 1. Tables Section */}
+              <div>
+                <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
+                  <span className="flex items-center gap-1 text-rose-400">
+                    <Table className="w-3 h-3" /> Tables ({filteredTables.length})
+                  </span>
+                  <button
+                    onClick={() => {
+                      handleCreateNewTable();
+                      if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                    }}
+                    className="text-gray-500 hover:text-white"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+                {filteredTables.length === 0 ? (
+                  <div className="px-2 py-2.5 rounded-lg bg-dark-950/40 border border-dashed border-dark-800 text-center">
+                    <p className="text-[11px] text-gray-500 mb-1">No tables</p>
+                    <button
+                      onClick={() => {
+                        handleCreateNewTable();
+                        if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                      }}
+                      className="px-2 py-0.5 rounded bg-rose-600/20 text-rose-300 hover:bg-rose-600/30 text-[10px] font-bold inline-flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> + Table
                     </button>
                   </div>
+                ) : (
                   <div className="space-y-0.5">
                     {filteredTables.map((t) => {
                       const isCurrent =
@@ -846,12 +1057,13 @@ export default function AccessLabClient() {
                       return (
                         <div
                           key={t.id}
-                          onClick={() =>
+                          onClick={() => {
                             setActiveTab({
                               type: 'table_datasheet',
                               tableName: t.name,
-                            })
-                          }
+                            });
+                            if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                          }}
                           className={`group flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer transition ${
                             isCurrent
                               ? 'bg-rose-950/60 text-white font-semibold border border-rose-700/40'
@@ -869,18 +1081,28 @@ export default function AccessLabClient() {
                       );
                     })}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* 2. Queries Section */}
-                <div>
-                  <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
-                    <span className="flex items-center gap-1 text-amber-400">
-                      <Code2 className="w-3 h-3" /> Queries ({filteredQueries.length})
-                    </span>
-                    <button onClick={handleCreateNewQuery} className="text-gray-500 hover:text-white">
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
+              {/* 2. Queries Section */}
+              <div>
+                <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
+                  <span className="flex items-center gap-1 text-amber-400">
+                    <Code2 className="w-3 h-3" /> Queries ({filteredQueries.length})
+                  </span>
+                  <button
+                    onClick={() => {
+                      handleCreateNewQuery();
+                      if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                    }}
+                    className="text-gray-500 hover:text-white"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+                {filteredQueries.length === 0 ? (
+                  <p className="text-[11px] text-gray-600 px-2">No saved queries</p>
+                ) : (
                   <div className="space-y-0.5">
                     {filteredQueries.map((q) => {
                       const isCurrent =
@@ -888,7 +1110,10 @@ export default function AccessLabClient() {
                       return (
                         <div
                           key={q.id}
-                          onClick={() => setActiveTab({ type: 'query', queryId: q.id })}
+                          onClick={() => {
+                            setActiveTab({ type: 'query', queryId: q.id });
+                            if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                          }}
                           className={`flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer transition ${
                             isCurrent
                               ? 'bg-amber-950/60 text-white font-semibold border border-amber-700/40'
@@ -903,43 +1128,59 @@ export default function AccessLabClient() {
                       );
                     })}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* 3. Relationships */}
-                <div>
-                  <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
-                    <span className="flex items-center gap-1 text-sky-400">
-                      <Share2 className="w-3 h-3" /> Relationships
-                    </span>
-                  </div>
-                  <div
-                    onClick={() => setActiveTab({ type: 'relationships' })}
-                    className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg cursor-pointer transition ${
-                      activeTab.type === 'relationships'
-                        ? 'bg-sky-950/60 text-white font-semibold border border-sky-700/40'
-                        : 'text-gray-300 hover:bg-dark-800'
-                    }`}
+              {/* 3. Relationships */}
+              <div>
+                <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
+                  <span className="flex items-center gap-1 text-sky-400">
+                    <Share2 className="w-3 h-3" /> Relationships
+                  </span>
+                </div>
+                <div
+                  onClick={() => {
+                    setActiveTab({ type: 'relationships' });
+                    if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg cursor-pointer transition ${
+                    activeTab.type === 'relationships'
+                      ? 'bg-sky-950/60 text-white font-semibold border border-sky-700/40'
+                      : 'text-gray-300 hover:bg-dark-800'
+                  }`}
+                >
+                  <Share2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>Relationships Canvas ({db.relationships.length})</span>
+                </div>
+              </div>
+
+              {/* 4. Forms */}
+              <div>
+                <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
+                  <span className="flex items-center gap-1 text-teal-400">
+                    <FileText className="w-3 h-3" /> Forms ({filteredForms.length})
+                  </span>
+                  <button
+                    onClick={() => {
+                      handleCreateNewForm();
+                      if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                    }}
+                    className="text-gray-500 hover:text-white"
                   >
-                    <Share2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                    <span>Relationships Canvas ({db.relationships.length})</span>
-                  </div>
+                    <Plus className="w-3 h-3" />
+                  </button>
                 </div>
-
-                {/* 4. Forms */}
-                <div>
-                  <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
-                    <span className="flex items-center gap-1 text-teal-400">
-                      <FileText className="w-3 h-3" /> Forms ({filteredForms.length})
-                    </span>
-                    <button onClick={handleCreateNewForm} className="text-gray-500 hover:text-white">
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
+                {filteredForms.length === 0 ? (
+                  <p className="text-[11px] text-gray-600 px-2">No forms created</p>
+                ) : (
                   <div className="space-y-0.5">
                     {filteredForms.map((frm) => (
                       <div
                         key={frm.id}
-                        onClick={() => setActiveTab({ type: 'form', formId: frm.id })}
+                        onClick={() => {
+                          setActiveTab({ type: 'form', formId: frm.id });
+                          if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                        }}
                         className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg cursor-pointer transition ${
                           activeTab.type === 'form' && activeTab.formId === frm.id
                             ? 'bg-teal-950/60 text-white font-semibold border border-teal-700/40'
@@ -951,23 +1192,36 @@ export default function AccessLabClient() {
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* 5. Reports */}
-                <div>
-                  <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
-                    <span className="flex items-center gap-1 text-emerald-400">
-                      <Printer className="w-3 h-3" /> Reports ({filteredReports.length})
-                    </span>
-                    <button onClick={handleCreateNewReport} className="text-gray-500 hover:text-white">
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
+              {/* 5. Reports */}
+              <div>
+                <div className="flex items-center justify-between font-bold text-gray-400 mb-1.5 px-1.5 uppercase text-[10px] tracking-wider">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <Printer className="w-3 h-3" /> Reports ({filteredReports.length})
+                  </span>
+                  <button
+                    onClick={() => {
+                      handleCreateNewReport();
+                      if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                    }}
+                    className="text-gray-500 hover:text-white"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+                {filteredReports.length === 0 ? (
+                  <p className="text-[11px] text-gray-600 px-2">No reports created</p>
+                ) : (
                   <div className="space-y-0.5">
                     {filteredReports.map((rpt) => (
                       <div
                         key={rpt.id}
-                        onClick={() => setActiveTab({ type: 'report', reportId: rpt.id })}
+                        onClick={() => {
+                          setActiveTab({ type: 'report', reportId: rpt.id });
+                          if (typeof window !== 'undefined' && window.innerWidth < 768) setIsNavOpen(false);
+                        }}
                         className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg cursor-pointer transition ${
                           activeTab.type === 'report' && activeTab.reportId === rpt.id
                             ? 'bg-emerald-950/60 text-white font-semibold border border-emerald-700/40'
@@ -979,10 +1233,10 @@ export default function AccessLabClient() {
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
               </div>
-            </aside>
-          )}
+            </div>
+          </aside>
 
           {/* ------------------------------------------------------------------ */}
           {/* RIGHT: MAIN WORKSPACE CANVAS                                       */}
@@ -991,6 +1245,12 @@ export default function AccessLabClient() {
             {/* Active Workspace Object Title Bar */}
             <div className="bg-dark-900 border-b border-dark-800 px-4 py-2 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
+                {activeTab.type === 'empty' && (
+                  <span className="flex items-center gap-1.5 font-bold text-gray-300">
+                    <Database className="w-4 h-4 text-rose-400" />
+                    {db.name} : Overview
+                  </span>
+                )}
                 {activeTab.type === 'table_design' && (
                   <span className="flex items-center gap-1.5 font-bold text-rose-300">
                     <LayoutTemplate className="w-4 h-4 text-rose-400" />
@@ -1031,6 +1291,14 @@ export default function AccessLabClient() {
 
               {/* Context Actions */}
               <div className="flex items-center gap-2">
+                {activeTab.type === 'empty' && (
+                  <button
+                    onClick={handleCreateNewTable}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Create Table
+                  </button>
+                )}
                 {activeTab.type === 'table_datasheet' && (
                   <button
                     onClick={() => handleAddNewRecord(activeTab.tableName)}
@@ -1083,6 +1351,92 @@ export default function AccessLabClient() {
                 )}
               </div>
             </div>
+
+            {/* ---------------------------------------------------------------- */}
+            {/* VIEW 0: EMPTY DATABASE CANVAS                                    */}
+            {/* ---------------------------------------------------------------- */}
+            {(activeTab.type === 'empty' ||
+              (!activeTable &&
+                (activeTab.type === 'table_design' ||
+                  activeTab.type === 'table_datasheet'))) && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center text-center">
+                <div className="max-w-xl w-full bg-dark-900 border border-dark-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-600/15 border border-rose-500/30 flex items-center justify-center mx-auto shadow-inner">
+                    <Database className="w-7 h-7 text-rose-400" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-950/60 border border-rose-800/40 text-[11px] font-mono text-rose-300">
+                      <span>Database: {db.name}</span>
+                      <span>•</span>
+                      <span>{Object.keys(db.tables).length} Tables</span>
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-extrabold text-white">
+                      Empty Access Database
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-md mx-auto">
+                      Start building your relational database. In Cameroon GCE practical exams, begin by creating tables in Design View, assigning Primary Keys, and enforcing validation rules.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                    <button
+                      onClick={handleCreateNewTable}
+                      className="p-4 rounded-xl bg-dark-950 hover:bg-dark-800 border border-dark-700/80 hover:border-rose-500/50 transition group flex flex-col justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-lg bg-rose-600/20 text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <LayoutTemplate className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-xs group-hover:text-rose-300">Create Table</p>
+                          <p className="text-[11px] text-gray-500">Design View with PK &amp; rules</p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
+                        + New Table <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={handleCreateNewQuery}
+                      className="p-4 rounded-xl bg-dark-950 hover:bg-dark-800 border border-dark-700/80 hover:border-amber-500/50 transition group flex flex-col justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-lg bg-amber-600/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <Code2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-xs group-hover:text-amber-300">SQL Query</p>
+                          <p className="text-[11px] text-gray-500">SELECT, JOIN &amp; WHERE clauses</p>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+                        + New Query <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="pt-2 border-t border-dark-800 flex flex-wrap items-center justify-center gap-3 text-xs">
+                    <button
+                      onClick={() => setActiveTab({ type: 'relationships' })}
+                      className="text-gray-400 hover:text-sky-300 flex items-center gap-1 transition"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-sky-400" />
+                      Relationships Canvas
+                    </button>
+                    <span className="text-dark-700">•</span>
+                    <button
+                      onClick={handleLoadGceSchoolAsNew}
+                      className="text-gray-400 hover:text-emerald-300 flex items-center gap-1 transition"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
+                      Load GCE Exam Sample
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* ---------------------------------------------------------------- */}
             {/* VIEW 1: TABLE DESIGN VIEW                                         */}
@@ -1558,114 +1912,203 @@ export default function AccessLabClient() {
             {/* VIEW 4: RELATIONSHIPS CANVAS                                      */}
             {/* ---------------------------------------------------------------- */}
             {activeTab.type === 'relationships' && (
-              <div className="flex-1 flex flex-col bg-dark-950 overflow-auto p-6 relative">
-                <div className="mb-4 flex items-center justify-between">
+              <div className="flex-1 flex flex-col bg-dark-950 overflow-auto p-3 sm:p-6 relative">
+                {/* Header */}
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
-                      <Share2 className="w-4 h-4 text-sky-400" /> Relationships Diagram
-                    </h2>
-                    <p className="text-xs text-gray-400">
-                      Primary Key &harr; Foreign Key linkages with Referential Integrity enforcement.
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <Share2 className="w-4 h-4 text-sky-400" /> Relationships Diagram
+                      </h2>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800/40 font-mono">
+                        {db.relationships.length} active
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Primary Key (1) &harr; Foreign Key (&infin;) linkages with Referential Integrity enforcement.
                     </p>
                   </div>
                   <button
                     onClick={() => {
+                      if (Object.keys(db.tables).length < 2) {
+                        toast.error('You need at least 2 tables to define a relationship.');
+                        return;
+                      }
+                      const tableKeys = Object.keys(db.tables);
                       setNewRel({
-                        fromTable: Object.keys(db.tables)[0] || '',
-                        fromField: '',
-                        toTable: Object.keys(db.tables)[1] || '',
-                        toField: '',
+                        fromTable: tableKeys[0] || '',
+                        fromField: db.tables[tableKeys[0]]?.fields[0]?.name || '',
+                        toTable: tableKeys[1] || '',
+                        toField: db.tables[tableKeys[1]]?.fields[0]?.name || '',
                         type: '1-to-Many',
                         enforceReferentialIntegrity: true,
                       });
                       setIsRelModalOpen(true);
                     }}
-                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm"
+                    className="self-start sm:self-auto px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm shrink-0"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Relationship
                   </button>
                 </div>
 
-                {/* Table Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  {Object.values(db.tables).map((t) => (
-                    <div
-                      key={t.id}
-                      className="bg-dark-900 border border-dark-700 rounded-xl overflow-hidden shadow-xl"
+                {Object.keys(db.tables).length < 2 ? (
+                  <div className="bg-dark-900 border border-dark-800 rounded-2xl p-6 sm:p-10 text-center space-y-4 my-auto max-w-md mx-auto">
+                    <div className="w-12 h-12 rounded-xl bg-sky-950/80 border border-sky-800/40 text-sky-400 flex items-center justify-center mx-auto">
+                      <Share2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-base">At least 2 Tables Required</h3>
+                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                        In Microsoft Access, relationships establish connections between the Primary Key of a parent table and the Foreign Key of a child table (e.g. tbl_Student &rarr; tbl_Enrollment).
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleCreateNewTable}
+                      className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition shadow-sm inline-flex items-center gap-1.5"
                     >
-                      <div className="bg-dark-800 px-3 py-2 border-b border-dark-700 flex items-center justify-between">
-                        <span className="font-bold text-xs text-rose-300 flex items-center gap-1.5">
-                          <Table className="w-3.5 h-3.5 text-rose-400" /> {t.name}
-                        </span>
-                        <span className="text-[10px] text-gray-500">{t.records.length} records</span>
+                      <Plus className="w-3.5 h-3.5" /> + Create Table
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Active Relationships Flow / Map */}
+                    <div className="bg-dark-900 border border-dark-800 rounded-xl p-3 sm:p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <Share2 className="w-3.5 h-3.5" /> Active Relationships ({db.relationships.length})
+                        </h3>
+                        <span className="text-[10px] text-gray-500 font-mono">1-to-Many Links</span>
                       </div>
-                      <div className="p-2 space-y-1 text-xs font-mono">
-                        {t.fields.map((f) => (
+
+                      {db.relationships.length === 0 ? (
+                        <div className="p-4 rounded-lg bg-dark-950 border border-dashed border-dark-800 text-center text-xs text-gray-400">
+                          No relationships created yet. Click <span className="text-sky-300 font-bold">&quot;+ Add Relationship&quot;</span> above to connect parent and child tables.
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {db.relationships.map((rel) => (
+                            <div
+                              key={rel.id}
+                              className="flex flex-col md:flex-row md:items-center justify-between p-3 rounded-lg bg-dark-950 border border-dark-800 gap-3 text-xs"
+                            >
+                              {/* Visual Linkage Badges */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-dark-900 border border-dark-700 font-mono">
+                                  <span className="text-rose-400 font-bold">{rel.fromTable}</span>
+                                  <span className="text-gray-500">.</span>
+                                  <span className="text-white font-semibold">{rel.fromField}</span>
+                                  <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-sans font-bold">1 (PK)</span>
+                                </div>
+
+                                <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-sky-950 text-sky-400 font-mono text-[10px] border border-sky-800/40">
+                                  <span>1 &rarr; &infin;</span>
+                                  <span className="text-gray-400">({rel.type})</span>
+                                </div>
+
+                                <div className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-dark-900 border border-dark-700 font-mono">
+                                  <span className="text-amber-400 font-bold">{rel.toTable}</span>
+                                  <span className="text-gray-500">.</span>
+                                  <span className="text-white font-semibold">{rel.toField}</span>
+                                  <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-sky-500/20 text-sky-300 font-sans font-bold">&infin; (FK)</span>
+                                </div>
+                              </div>
+
+                              {/* Integrity & Actions */}
+                              <div className="flex items-center justify-between md:justify-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-dark-800">
+                                {rel.enforceReferentialIntegrity && (
+                                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 text-[10px] font-semibold border border-emerald-800/40">
+                                    Referential Integrity ON
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteRelationship(rel.id)}
+                                  className="text-gray-500 hover:text-red-400 p-1 rounded hover:bg-dark-800 transition"
+                                  title="Delete Relationship"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Table Cards Grid */}
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <Table className="w-3.5 h-3.5 text-rose-400" /> Database Tables ({Object.keys(db.tables).length})
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.values(db.tables).map((t) => (
                           <div
-                            key={f.id}
-                            className="flex items-center justify-between px-2 py-1 rounded bg-dark-950/60"
+                            key={t.id}
+                            className="bg-dark-900 border border-dark-700 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between"
                           >
-                            <span className="flex items-center gap-1.5">
-                              {f.isPrimaryKey && (
-                                <Key className="w-3 h-3 text-amber-400 fill-current shrink-0" />
-                              )}
-                              <span className={f.isPrimaryKey ? 'font-bold text-amber-200' : 'text-gray-300'}>
-                                {f.name}
-                              </span>
-                            </span>
-                            <span className="text-[10px] text-gray-500 font-sans">{f.type}</span>
+                            <div>
+                              <div className="bg-dark-800 px-3 py-2 border-b border-dark-700 flex items-center justify-between">
+                                <span className="font-bold text-xs text-rose-300 flex items-center gap-1.5 truncate">
+                                  <Table className="w-3.5 h-3.5 text-rose-400 shrink-0" /> {t.name}
+                                </span>
+                                <span className="text-[10px] text-gray-400 shrink-0">{t.records.length} records</span>
+                              </div>
+                              <div className="p-2 space-y-1 text-xs font-mono">
+                                {t.fields.map((f) => {
+                                  const outRel = db.relationships.find((r) => r.fromTable === t.name && r.fromField === f.name);
+                                  const inRel = db.relationships.find((r) => r.toTable === t.name && r.toField === f.name);
+
+                                  return (
+                                    <div
+                                      key={f.id}
+                                      className="flex items-center justify-between px-2 py-1.5 rounded bg-dark-950/60 gap-1.5"
+                                    >
+                                      <span className="flex items-center gap-1.5 min-w-0 truncate">
+                                        {f.isPrimaryKey && (
+                                          <Key className="w-3 h-3 text-amber-400 fill-current shrink-0" />
+                                        )}
+                                        <span className={f.isPrimaryKey ? 'font-bold text-amber-200 truncate' : 'text-gray-300 truncate'}>
+                                          {f.name}
+                                        </span>
+                                      </span>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {outRel && (
+                                          <span className="text-[9px] px-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-sans" title={`1 → ${outRel.toTable}.${outRel.toField}`}>
+                                            1 &rarr; {outRel.toTable}
+                                          </span>
+                                        )}
+                                        {inRel && (
+                                          <span className="text-[9px] px-1 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 font-sans" title={`∞ ← ${inRel.fromTable}.${inRel.fromField}`}>
+                                            &infin; &larr; {inRel.fromTable}
+                                          </span>
+                                        )}
+                                        <span className="text-[10px] text-gray-500 font-sans">{f.type}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="px-3 py-1.5 bg-dark-950/80 border-t border-dark-800 flex items-center justify-end gap-2 text-[11px]">
+                              <button
+                                onClick={() => setActiveTab({ type: 'table_datasheet', tableName: t.name })}
+                                className="text-gray-400 hover:text-white transition"
+                              >
+                                Datasheet
+                              </button>
+                              <span className="text-dark-700">•</span>
+                              <button
+                                onClick={() => setActiveTab({ type: 'table_design', tableName: t.name })}
+                                className="text-rose-400 hover:text-rose-300 font-semibold transition"
+                              >
+                                Design
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                {/* Established Relationships List */}
-                <div className="bg-dark-900 border border-dark-800 rounded-xl p-4">
-                  <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3">
-                    Active Relationships ({db.relationships.length})
-                  </h3>
-                  {db.relationships.length === 0 ? (
-                    <p className="text-xs text-gray-500">No relationships created yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {db.relationships.map((rel) => (
-                        <div
-                          key={rel.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-dark-950 border border-dark-800 text-xs"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono text-rose-300 font-bold">
-                              {rel.fromTable}.{rel.fromField}
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-sky-950 text-sky-400 font-mono text-[10px] border border-sky-800/40">
-                              1 &rarr; &infin; ({rel.type})
-                            </span>
-                            <span className="font-mono text-amber-300 font-bold">
-                              {rel.toTable}.{rel.toField}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {rel.enforceReferentialIntegrity && (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 text-[10px] font-semibold border border-emerald-800/40">
-                                Referential Integrity
-                              </span>
-                            )}
-                            <button
-                              onClick={() => handleDeleteRelationship(rel.id)}
-                              className="text-gray-500 hover:text-red-400 p-1 transition"
-                              title="Delete Relationship"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1857,7 +2300,7 @@ export default function AccessLabClient() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 {/* Table 1 (Primary Key table) */}
                 <div className="space-y-2">
                   <label className="font-bold text-rose-300">Table/Query (Primary Key)</label>
@@ -1967,6 +2410,187 @@ export default function AccessLabClient() {
                   className="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm"
                 >
                   Create
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* MODAL: DATABASE MANAGER & CREATOR                                    */}
+        {/* ==================================================================== */}
+        {isDbModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+            <div className="bg-dark-900 border border-dark-700 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-600/20 text-rose-400 border border-rose-500/30 flex items-center justify-center">
+                    <Database className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-white text-sm sm:text-base">
+                      Manage Access Databases
+                    </h3>
+                    <p className="text-[11px] text-gray-400">
+                      {databases.length} database{databases.length === 1 ? '' : 's'} available
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsDbModalOpen(false)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-dark-800 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Create New Empty Database Section */}
+              <div className="bg-dark-950 border border-dark-800 rounded-xl p-3.5 space-y-2.5">
+                <label className="text-xs font-bold text-rose-300 uppercase tracking-wider block">
+                  Create New Empty Database
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder={`e.g. Database${databases.length + 1}.accdb`}
+                    value={newDbNameInput}
+                    onChange={(e) => setNewDbNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCreateNewDatabase();
+                    }}
+                    className="flex-1 bg-dark-900 border border-dark-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-rose-500"
+                  />
+                  <button
+                    onClick={() => handleCreateNewDatabase()}
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0 shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Database List */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px]">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  Your Databases
+                </label>
+                {databases.map((d) => {
+                  const isActive = d.id === activeDbId;
+                  const isEditing = editingDbId === d.id;
+                  const tableCount = Object.keys(d.tables).length;
+                  const queryCount = Object.keys(d.queries).length;
+
+                  return (
+                    <div
+                      key={d.id}
+                      className={`p-3 rounded-xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                        isActive
+                          ? 'bg-rose-950/20 border-rose-500/40 shadow-sm'
+                          : 'bg-dark-950 border-dark-800 hover:border-dark-700'
+                      }`}
+                    >
+                      <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                        <Database
+                          className={`w-4 h-4 shrink-0 mt-0.5 sm:mt-0 ${
+                            isActive ? 'text-rose-400' : 'text-gray-500'
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          {isEditing ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={editingDbName}
+                                onChange={(e) => setEditingDbName(e.target.value)}
+                                className="bg-dark-900 border border-rose-500 rounded px-2 py-0.5 text-xs text-white outline-none"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRenameDatabase(d.id, editingDbName);
+                                  if (e.key === 'Escape') setEditingDbId(null);
+                                }}
+                              />
+                              <button
+                                onClick={() => handleRenameDatabase(d.id, editingDbName)}
+                                className="p-1 text-emerald-400 hover:text-emerald-300"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setEditingDbId(null)}
+                                className="p-1 text-gray-400 hover:text-white"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-xs text-white truncate max-w-[160px] sm:max-w-[200px]">
+                                {d.name}
+                              </span>
+                              {isActive && (
+                                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold border border-rose-500/30">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            {tableCount} table{tableCount === 1 ? '' : 's'} • {queryCount} quer{queryCount === 1 ? 'y' : 'ies'} • {d.relationships.length} rels
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-end gap-1.5 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-dark-800">
+                        {!isActive && (
+                          <button
+                            onClick={() => handleSwitchDatabase(d.id)}
+                            className="px-2.5 py-1 rounded bg-dark-800 hover:bg-dark-700 text-gray-200 text-xs font-semibold border border-dark-700 transition"
+                          >
+                            Open
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setEditingDbId(d.id);
+                            setEditingDbName(d.name);
+                          }}
+                          className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-dark-800 transition"
+                          title="Rename Database"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        {databases.length > 1 && (
+                          <button
+                            onClick={() => handleDeleteDatabase(d.id)}
+                            className="p-1.5 rounded text-gray-500 hover:text-red-400 hover:bg-dark-800 transition"
+                            title="Delete Database"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer Option: Load Sample */}
+              <div className="pt-3 border-t border-dark-800 flex items-center justify-between text-xs">
+                <button
+                  onClick={handleLoadGceSchoolAsNew}
+                  className="text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Load GCE Exam Sample Database
+                </button>
+                <button
+                  onClick={() => setIsDbModalOpen(false)}
+                  className="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 text-gray-300 text-xs font-semibold"
+                >
+                  Close
                 </button>
               </div>
             </div>

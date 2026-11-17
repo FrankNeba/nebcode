@@ -899,34 +899,13 @@ export function getGceSchoolTemplate(): AccessDatabase {
   };
 }
 
-export function getBlankDatabase(): AccessDatabase {
+export function getBlankDatabase(name: string = 'Database1.accdb'): AccessDatabase {
+  const cleanName = name.trim() || 'Database1';
   return {
-    id: `db_${Date.now()}`,
-    name: 'Database1.accdb',
+    id: `db_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    name: cleanName.endsWith('.accdb') ? cleanName : `${cleanName}.accdb`,
     updatedAt: new Date().toISOString(),
-    tables: {
-      Table1: {
-        id: 't_1',
-        name: 'Table1',
-        autoNumberCounter: 0,
-        fields: [
-          {
-            id: 'f_id',
-            name: 'ID',
-            type: 'AutoNumber',
-            isPrimaryKey: true,
-            properties: { fieldSize: 'Long Integer', required: true },
-          },
-          {
-            id: 'f_field1',
-            name: 'Field1',
-            type: 'Short Text',
-            properties: { fieldSize: 255 },
-          },
-        ],
-        records: [],
-      },
-    },
+    tables: {},
     relationships: [],
     queries: {},
     forms: {},
