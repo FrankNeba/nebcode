@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Globe,
   Table2,
+  KeyRound,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -248,6 +249,28 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-teal-400 pt-2">
               <span>Open Excel Lab</span>
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          {/* Card 7: Microsoft Access Database Lab */}
+          <Link
+            href="/access-lab"
+            className="card card-hover p-6 flex flex-col justify-between gap-4 group"
+          >
+            <div className="space-y-3">
+              <div className="w-11 h-11 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
+                <KeyRound className="h-5 w-5 text-rose-400" />
+              </div>
+              <h3 className="text-lg font-extrabold text-white group-hover:text-rose-400 transition">
+                7. Microsoft Access Lab
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                Master GCE database practicals: design tables, enforce validation rules, define 1-to-many relationships with referential integrity, and run SQL queries.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 pt-2">
+              <span>Open Access Lab</span>
               <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>

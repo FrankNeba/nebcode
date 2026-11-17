@@ -11,6 +11,7 @@ import {
   FileCheck2,
   Globe,
   Table2,
+  KeyRound,
   Terminal,
   X,
   ChevronRight,
@@ -46,6 +47,13 @@ const LAB_ITEMS = [
     icon: Table2,
     color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',
   },
+  {
+    label: 'Microsoft Access Lab',
+    desc: 'Tables, validation rules, relationships & SQL',
+    href: '/access-lab',
+    icon: KeyRound,
+    color: 'text-rose-400 bg-rose-500/15 border-rose-500/30',
+  },
 ];
 
 export function MobileNav() {
@@ -56,7 +64,8 @@ export function MobileNav() {
     pathname.startsWith('/editor') ||
     pathname.startsWith('/mysql-lab') ||
     pathname.startsWith('/web-lab') ||
-    pathname.startsWith('/excel-lab');
+    pathname.startsWith('/excel-lab') ||
+    pathname.startsWith('/access-lab');
 
   return (
     <>

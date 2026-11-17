@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, FileCheck2, Code2, Database, Phone, Mail, CreditCard, Globe, Table2 } from 'lucide-react';
+import { BookOpen, FileCheck2, Code2, Database, Phone, Mail, CreditCard, Globe, Table2, KeyRound } from 'lucide-react';
 
 export function Footer() {
   const pathname = usePathname();
@@ -12,6 +12,7 @@ export function Footer() {
     pathname?.startsWith('/mysql-lab') ||
     pathname?.startsWith('/web-lab') ||
     pathname?.startsWith('/excel-lab') ||
+    pathname?.startsWith('/access-lab') ||
     (pathname?.startsWith('/mcq/') && pathname !== '/mcq') ||
     pathname?.includes('/lesson/') ||
     pathname?.includes('/lessons/')
@@ -71,6 +72,11 @@ export function Footer() {
               <li>
                 <Link href="/excel-lab" className="hover:text-neb-500 transition flex items-center gap-1.5">
                   <Table2 className="h-3.5 w-3.5 text-neb-500" /> Excel Spreadsheet Lab
+                </Link>
+              </li>
+              <li>
+                <Link href="/access-lab" className="hover:text-neb-500 transition flex items-center gap-1.5">
+                  <KeyRound className="h-3.5 w-3.5 text-rose-400" /> MS Access Database Lab
                 </Link>
               </li>
             </ul>

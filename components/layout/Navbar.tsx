@@ -22,6 +22,7 @@ import {
   User,
   Globe,
   Table2,
+  KeyRound,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useThemeStore } from '@/store/theme.store';
@@ -117,6 +118,9 @@ export function Navbar() {
           </Link>
           <Link href="/excel-lab" className={navLinkClass('/excel-lab')}>
             <Table2 className="h-4 w-4" /> Excel Lab
+          </Link>
+          <Link href="/access-lab" className={navLinkClass('/access-lab')}>
+            <KeyRound className="h-4 w-4" /> Access Lab
           </Link>
           {isAuthenticated && (
             <Link href="/dashboard" className={navLinkClass('/dashboard')}>
@@ -348,6 +352,13 @@ export function Navbar() {
               onClick={() => setOpen(false)}
             >
               <Table2 className="h-4 w-4 text-neb-500" /> Excel Spreadsheet Lab
+            </Link>
+            <Link
+              href="/access-lab"
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-dark-800 text-sm font-medium"
+              onClick={() => setOpen(false)}
+            >
+              <KeyRound className="h-4 w-4 text-rose-400" /> MS Access Database Lab
             </Link>
             {isAuthenticated && (
               <>

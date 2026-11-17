@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock, Sparkles, GraduationCap, FileCheck2, Globe, Table2 } from 'lucide-react';
+import { BookOpen, CheckCircle2, TrendingUp, Terminal, Code2, ArrowRight, Star, Zap, ShieldAlert, Play, Lock, Sparkles, GraduationCap, FileCheck2, Globe, Table2, KeyRound } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { progressService, paymentService, courseService, ambassadorService } from '@/services';
 import { cn } from '@/lib/utils';
@@ -251,6 +251,17 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-500">Formulas, VLOOKUP &amp; charts</p>
           </div>
           <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-teal-400 transition-colors shrink-0" />
+        </Link>
+
+        <Link href="/access-lab" className="card card-hover p-5 flex items-center gap-4 group">
+          <div className="w-10 h-10 rounded-lg bg-rose-900/30 border border-rose-800/30 flex items-center justify-center shrink-0 group-hover:bg-rose-900/50 transition-colors">
+            <KeyRound className="h-5 w-5 text-rose-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-white text-sm">Access Database Lab</p>
+            <p className="text-xs text-gray-500">Tables, validation &amp; queries</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-600 group-hover:text-rose-400 transition-colors shrink-0" />
         </Link>
       </div>
 
