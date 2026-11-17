@@ -27,7 +27,8 @@ export default function GoogleLoginButton({ onSuccess }: GoogleLoginButtonProps)
     const handleCredentialResponse = async (response: any) => {
       try {
         const credential = response.credential;
-        const { data } = await authService.googleAuth({ token: credential });
+        const device_id = typeof window !== 'undefined' ? localStorage.getItem('nebcode_device_id') : undefined;
+        const { data } = await authService.googleAuth({ token: credential, device_id: device_id || undefined });
         
         const cookieOptions = {
           expires: 7,
